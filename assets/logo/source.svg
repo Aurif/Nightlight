@@ -15,7 +15,7 @@
    version="1.1"
    id="svg8"
    inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)"
-   sodipodi:docname="logo.svg"
+   sodipodi:docname="source.svg"
    inkscape:export-filename="F:\Temp\logo.png"
    inkscape:export-xdpi="507.746"
    inkscape:export-ydpi="507.746">
@@ -135,7 +135,7 @@
        id="Light_Base"
        osb:paint="solid">
       <stop
-         style="stop-color:#2e3056;stop-opacity:1;"
+         style="stop-color:#161b3f;stop-opacity:1;"
          offset="0"
          id="stop1516" />
     </linearGradient>
@@ -357,9 +357,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="50.525594"
-     inkscape:cy="151.91431"
+     inkscape:zoom="2.0000001"
+     inkscape:cx="152.36658"
+     inkscape:cy="145.45997"
      inkscape:document-units="mm"
      inkscape:current-layer="g1486"
      inkscape:document-rotation="0"
@@ -442,7 +442,7 @@
          r="62.797001"
          inkscape:label="Light4" />
       <circle
-         style="opacity:1;fill:url(#linearGradient1689);fill-opacity:1.0;stroke:#52f249;stroke-width:0;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         style="opacity:1;fill:url(#linearGradient1689);fill-opacity:1;stroke:#52f249;stroke-width:0;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          id="path1663"
          cx="50"
          cy="83"
