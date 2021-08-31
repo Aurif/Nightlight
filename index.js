@@ -33,7 +33,7 @@ client.on('interactionCreate', async interaction => {
   if (!command) return;
 
   try {
-    await command.execute(interaction);
+    await command.execute(interaction, require('./guild_configs/'+interaction.guild.id+'.json'));
   } catch (error) {
     console.error(error);
     return interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
