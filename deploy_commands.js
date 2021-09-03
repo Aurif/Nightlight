@@ -47,7 +47,7 @@ module.exports = (client) => {
   const buttonHandler = async interaction => {
     const command = client.commands.get(interaction.customId.split(":")[0]);
     const button = command.buttons[interaction.customId.split(":")[1]];
-    if(button) return button(interaction)
+    if(button) return button(interaction, require('./guild_configs/'+interaction.guild.id+'.json'))
   }
 
 
