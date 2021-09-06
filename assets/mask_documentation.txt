@@ -1,0 +1,14 @@
+Mode selection:
+Red [0]: Absolute saturation and lightness
+Red [128]: Relative saturation, absolute lightness
+Red [255]: Relative saturation and lightness
+
+Relative mode:
+Green [0-127]: Desaturate
+Green [128-255]: Oversaturate 
+Blue [0-127]: Lighten
+Blue [128-255]: Darken
+
+Absolute mode:
+Green [0-255]: Saturation
+Blue [0-255]: Lightness

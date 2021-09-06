@@ -8,13 +8,26 @@ var tinycolor = require("tinycolor2");
 
 
 async function loadInColor(image, color) {
+  color = tinycolor(color)
   image = image.clone()
   return image.scan(0, 0, image.bitmap.width, image.bitmap.height, function(x, y, idx) {
-    let pixel = tinycolor(color)
-      .spin(this.bitmap.data[idx + 0]/256*360)
-      .saturate(this.bitmap.data[idx + 1]/2.56-50)
-      .lighten(this.bitmap.data[idx + 2]/2.56-50)
+    let absS = this.bitmap.data[idx + 1]/2.56
+    let absL = this.bitmap.data[idx + 2]/2.56
+
+    let relS = color.toHsl().s*100
+    if(this.bitmap.data[idx + 1] > 128) relS = relS+(100-relS)*(this.bitmap.data[idx + 1]/128-1)
+    else relS = relS*(this.bitmap.data[idx + 1]/128)
+    let relL = color.toHsl().l*100
+    if(this.bitmap.data[idx + 1] > 128) relL = relL+(100-relL)*(this.bitmap.data[idx + 2]/128-1)
+    else relL = relL*(this.bitmap.data[idx + 1]/128)
+      
   
+    pixel = tinycolor({
+      h: color.toHsl().h,
+      s: Math.round(absS+(relS-absS)*Math.min(1, this.bitmap.data[idx]/128)),
+      l: Math.round(absL+(relL-absL)*Math.max(0, (this.bitmap.data[idx]+1)/128-1))
+    })
+
     this.bitmap.data[idx + 0] = pixel.toRgb().r;
     this.bitmap.data[idx + 1] = pixel.toRgb().g;
     this.bitmap.data[idx + 2] = pixel.toRgb().b;
