@@ -1,7 +1,28 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
+const { MessageActionRow, MessageButton, MessageEmbed, MessageAttachment } = require('discord.js');
 const { Collection } = require('discord.js');
 const Client = new (require("@replit/database"))();
+var Jimp = require('jimp');
+var tinycolor = require("tinycolor2");
+
+
+
+async function loadInColor(image, color) {
+  image = image.clone()
+  return image.scan(0, 0, image.bitmap.width, image.bitmap.height, function(x, y, idx) {
+    let pixel = tinycolor(color)
+      .spin(this.bitmap.data[idx + 0]/256*360)
+      .saturate(this.bitmap.data[idx + 1]/2.56-50)
+      .lighten(this.bitmap.data[idx + 2]/2.56-50)
+  
+    this.bitmap.data[idx + 0] = pixel.toRgb().r;
+    this.bitmap.data[idx + 1] = pixel.toRgb().g;
+    this.bitmap.data[idx + 2] = pixel.toRgb().b;
+  });
+}
+
+
+
 
 async function castVote(interaction, guildConfig, vote) {
   let dbId = interaction.message.id
@@ -14,22 +35,58 @@ async function castVote(interaction, guildConfig, vote) {
 }
 
 async function updateVotingMessage(interaction, guildConfig) {
+  interaction.deferUpdate()
+
   let message = interaction.message
   const voteChannel = await interaction.guild.channels.fetch(guildConfig.votingChannel)
-  // await interaction.guild.members.fetch()
-  const members = voteChannel.members.filter(user => user.user.bot)
-  console.log(voteChannel.members)
+  await interaction.guild.members.fetch()
+  const members = voteChannel.members.filter(user => !user.user.bot)
 
   let count = { "for": 0, "abstain": 0, "against": 0, "all": 0 }
   let coll = ((await Client.get(message.id)) || {})
-  for (c in coll) {count[coll[c]]++; count["all"]++}
+  for (c in coll) { count[coll[c]]++; count["all"]++ }
+  let allVotes = count.against * 1 + count.for * 1
+
+  let votingThreshold = 0.6
+
+
+
+
+
+  let imageBar = (await Jimp.read('assets/gui/percentage_bar.png'))
+  let imageMark = (await Jimp.read('assets/gui/percentage_mark.png'))
+  let margin = 57
+
+  let forWidth = Math.round(margin + (imageBar.bitmap.width - 2 * margin) * count.for / allVotes)
+  let image = imageBar.clone().opacity(0)
+    .composite((await loadInColor(imageBar, "#3ba55d"))
+      .crop(0, 0, forWidth, imageBar.bitmap.height),
+      0, 0)
+    .composite((await loadInColor(imageBar, "#ed4245"))
+      .crop(forWidth, 0, imageBar.bitmap.width - forWidth, imageBar.bitmap.height),
+      forWidth, 0)
+    .composite((await loadInColor(imageMark, count.for/allVotes < votingThreshold?"#ed4245":"#3ba55d")),
+      Math.max(margin,
+      Math.min(imageBar.bitmap.width - imageMark.bitmap.width - margin,
+      forWidth - imageMark.bitmap.width / 2))
+      , 0, { mode: Jimp.BLEND_SOURCE_OVER })
+  const attachment = new MessageAttachment(await image.getBufferAsync(Jimp.MIME_PNG), 'results.png');
+
+
+
+
 
   let newEmbed = new MessageEmbed(message.embeds[0])
-      .setDescription(`For: ${count.for}\nAgainst: ${count.against}\nAbstain: ${count.abstain}`)
-      .setFooter(count.all+'/'+members.size+' votes casted\nVoting ends: ')
-  
-  return await interaction.update({embeds: [newEmbed]})
+    .setDescription(allVotes ? '' : 'There are no votes yet!')
+    .setFooter(count.all + '/' + members.size + ' votes casted\nVoting ends: ')
+    .setImage(allVotes ? "attachment://results.png" : null)
+
+  await message.removeAttachments()
+  return await message.edit({ embeds: [newEmbed], files: allVotes ? [attachment] : [] })
 }
+
+
+
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -39,7 +96,7 @@ module.exports = {
   async execute(interaction, guildConfig) {
     const guild = interaction.guild;
     const voteChannel = await guild.channels.fetch(guildConfig.votingChannel)
-    // await interaction.guild.members.fetch()
+    await interaction.guild.members.fetch()
     const members = voteChannel.members.filter(user => !user.user.bot)
 
     const voteEmbed = new MessageEmbed()
@@ -47,9 +104,8 @@ module.exports = {
       .setAuthor('VOTING', 'https://media.discordapp.net/attachments/557227661131251733/882377586204885043/voting.png')
       .setTitle(interaction.options.getString('proposal'))
       .setDescription(`There are no votes yet!`)
-      .setFooter('0/'+members.size+' votes casted\nVoting ends: ')
-      .setImage('http://filmos.net/assets/images/FilmosMed.png')
-      .setTimestamp(Math.round(Date.now()/(1000*60*15)+4*24*3)*1000*60*15)
+      .setFooter('0/' + members.size + ' votes casted\nVoting ends: ')
+      .setTimestamp(Math.round(Date.now() / (1000 * 60 * 15) + 4 * 24 * 3) * 1000 * 60 * 15)
 
     const voteButtons = new MessageActionRow()
       .addComponents(

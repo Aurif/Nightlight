@@ -6,7 +6,7 @@ const client = new Client({
   presence: {
     status: 'online'
   },
-  intents: [Intents.FLAGS.GUILDS]
+  intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS]
 });
 client.login(process.env['__BOTTOKEN__']);
 
