@@ -44,10 +44,10 @@ async function castVote(interaction, guildConfig, vote) {
   coll[interaction.user.id] = vote
   await DataBase.set(dbId, coll)
 
-  return await updateVotingMessage(interaction, guildConfig)
+  return await updateVoteMessage(interaction, guildConfig)
 }
 
-async function updateVotingMessage(interaction, guildConfig) {
+async function updateVoteMessage(interaction, guildConfig) {
   interaction.deferUpdate()
 
   let message = interaction.message
@@ -144,8 +144,14 @@ module.exports = {
           .setStyle('DANGER')
       );
 
-    voteChannel.send({ embeds: [voteEmbed], components: [voteButtons] })
-    return interaction.reply({ content: `New voting created!`, ephemeral: true });
+    const voteMessage = await voteChannel.send({ embeds: [voteEmbed], components: [voteButtons] })
+    const voteThread = await voteMessage.startThread({
+      name: interaction.options.getString('proposal'),
+      autoArchiveDuration: 'MAX',
+      reason: "Thread for voting discussion"
+    })
+    // voteChannel.send({ content: "-", components: [voteButtons], reply: {messageReference: voteMessage} })
+    return interaction.reply({ content: `**New voting created**, [click here to go to it](<${voteMessage.url}>)`, ephemeral: true });
   },
   buttons: {
     "for": (async (int, guildConfig) => { return await castVote(int, guildConfig, "for") }),
