@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { Client, Intents } = require('discord.js');
+const { secrets } = require('./proxy/load.js')
 
 const client = new Client({
   fetchAllMembers: true,
@@ -8,7 +9,7 @@ const client = new Client({
   },
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS]
 });
-client.login(process.env['__BOTTOKEN__']);
+client.login(secrets('__BOTTOKEN__'));
 
 
 
@@ -17,6 +18,6 @@ client.once('ready', () => {
   
   let commands = require("./deploy_commands.js")(client);
   commands.every(com => {
-    client.api.applications(client.user.id).guilds(process.env['_TestGuildId_']).commands.post({data: com.data});
+    client.api.applications(client.user.id).guilds(secrets('_TestGuildId_')).commands.post({data: com.data});
   })
 });

@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageButton, MessageEmbed, MessageAttachment } = require('discord.js');
 const { Collection } = require('discord.js');
-const Client = new (require("@replit/database"))();
+const { DataBase } = require("./../proxy/load.js");
 var Jimp = require('jimp');
 var tinycolor = require("tinycolor2");
 
@@ -39,10 +39,10 @@ async function loadInColor(image, color) {
 
 async function castVote(interaction, guildConfig, vote) {
   let dbId = interaction.message.id
-  let coll = ((await Client.get(dbId)) || {})
+  let coll = ((await DataBase.get(dbId)) || {})
 
   coll[interaction.user.id] = vote
-  await Client.set(dbId, coll)
+  await DataBase.set(dbId, coll)
 
   return await updateVotingMessage(interaction, guildConfig)
 }
@@ -56,7 +56,7 @@ async function updateVotingMessage(interaction, guildConfig) {
   const members = voteChannel.members.filter(user => !user.user.bot)
 
   let count = { "for": 0, "abstain": 0, "against": 0, "all": 0 }
-  let coll = ((await Client.get(message.id)) || {})
+  let coll = ((await DataBase.get(message.id)) || {})
   for (c in coll) { count[coll[c]]++; count["all"]++ }
   let allVotes = count.against * 1 + count.for * 1
 
@@ -66,11 +66,18 @@ async function updateVotingMessage(interaction, guildConfig) {
 
 
 
+  let font = (await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE))
   let imageBar = (await Jimp.read('assets/gui/percentage_bar.png'))
   let imageMark = (await Jimp.read('assets/gui/percentage_mark.png'))
   let margin = 57
 
+  let markText = Math.round(count.for / allVotes * 100)+"%"
   let forWidth = Math.round(margin + (imageBar.bitmap.width - 2 * margin) * count.for / allVotes)
+  let markPos = 
+    Math.max(margin,
+    Math.min(imageBar.bitmap.width - imageMark.bitmap.width - margin,
+    forWidth - imageMark.bitmap.width / 2))
+  
   let image = imageBar.clone().opacity(0)
     .composite((await loadInColor(imageBar, "#3ba55d"))
       .crop(0, 0, forWidth, imageBar.bitmap.height),
@@ -79,10 +86,11 @@ async function updateVotingMessage(interaction, guildConfig) {
       .crop(forWidth, 0, imageBar.bitmap.width - forWidth, imageBar.bitmap.height),
       forWidth, 0)
     .composite((await loadInColor(imageMark, count.for/allVotes < votingThreshold?"#ed4245":"#3ba55d")),
-      Math.max(margin,
-      Math.min(imageBar.bitmap.width - imageMark.bitmap.width - margin,
-      forWidth - imageMark.bitmap.width / 2))
-      , 0, { mode: Jimp.BLEND_SOURCE_OVER })
+      markPos, 0, { mode: Jimp.BLEND_SOURCE_OVER })
+    .print(font, 
+      markPos+imageMark.bitmap.width/2-Jimp.measureText(font, markText)/2, 
+      imageMark.bitmap.height/2-8, 
+      markText)
   const attachment = new MessageAttachment(await image.getBufferAsync(Jimp.MIME_PNG), 'results.png');
 
 

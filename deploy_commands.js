@@ -4,6 +4,7 @@ module.exports = (client) => {
   const { REST } = require('@discordjs/rest');
   const { Routes } = require('discord-api-types/v9');
   const { Collection } = require('discord.js');
+  const { secrets } = require("./proxy/load.js");
 
 
   client.commands = new Collection();
@@ -15,11 +16,11 @@ module.exports = (client) => {
 
 
 
-  // const rest = new REST({ version: '9' }).setToken(process.env['__BOTTOKEN__']);
+  // const rest = new REST({ version: '9' }).setToken(secrets('__BOTTOKEN__'));
   // (async () => {
   // 	try {
   // 		await rest.put(
-  //       Routes.applicationCommands(process.env['__CLIENTID__']),
+  //       Routes.applicationCommands(secrets('__CLIENTID__')),
   //       { body: client.commands },
   //     );
 
