@@ -5,6 +5,181 @@ const { DataBase } = require("./../proxy/load.js");
 var Jimp = require('jimp');
 var tinycolor = require("tinycolor2");
 
+class Voting {
+  constructor(uid) {
+    this.uid = uid
+  }
+  register(proposal, guildId) {
+    this.registry = {
+      votes: {},
+      guild: guildId,
+      proposal: proposal,
+      linkedInputs: [],
+      linkedDisplays: []
+    }
+    return this
+  }
+  async findRegistry() {
+    let votingBase = ((await DataBase.get("ComVoting")) || {})
+    let originalUid = this.uid
+    this.uid = Object.keys(votingBase).find(k => {
+      let v = votingBase[k]
+      return ([...v.linkedInputs, ...v.linkedDisplays].findIndex(vv => vv.message == originalUid)!=-1)
+    })
+    this.registry = votingBase[this.uid]
+    return this
+  }
+  async pushRegistry(newData) {
+    let votingBase = ((await DataBase.get("ComVoting")) || {})
+    votingBase[this.uid] = this.registry
+    await DataBase.set("ComVoting", votingBase)
+    return this
+  }
+
+  async getElligibleVoters() {
+    if(this._elligibleVoters) return this._elligibleVoters
+    if(!this.guildConfig) return new Collection()
+
+    let channel = await this.getTargetChannel()
+    await channel.guild.members.fetch()
+    this._elligibleVoters = channel.members.filter(user => !user.user.bot)
+    return this._elligibleVoters
+  }
+  async getTargetChannel() {
+    if(this._targetChannel) return this._targetChannel
+    if(!this.guildConfig) return []
+
+    let guild = DiscordClient.guilds.cache.get(this.guildId)
+    this._targetChannel = await guild.channels.fetch(this.guildConfig.votingChannel)
+    return this._targetChannel
+  }
+  get totalDuration() {return 4320}
+  get votingThreshold() {return 0.6}
+  get guildConfig() {
+    if(this._guildConfig) return this._guildConfig
+    if(!this.guildId) return {}
+
+    this._guildConfig = require('../guild_configs/'+this.guildId+'.json')
+    return this._guildConfig
+  }
+  get guildId() {
+    if(!this.registry) return undefined
+    return this.registry.guild
+  }
+  get proposal() {
+    if(!this.registry) return undefined
+    return this.registry.proposal
+  }
+
+
+  castVote(userId, vote) {
+    this.registry.votes[userId] = vote
+    return this
+  }
+  async pushUpdate() {
+    let count = this.getResults()
+    let members = (await this.getElligibleVoters()).size
+    let newAttachment = count.allVotes ? [(await this.generateResultsImage())] : []
+
+    this.registry.linkedDisplays.forEach(async (conf) => {
+      let guild = DiscordClient.guilds.cache.get(this.guildId)
+      let channel = await guild.channels.fetch(conf.channel)
+      let message = await channel.messages.fetch(conf.message)
+      let newEmbed = new MessageEmbed(message.embeds[0])
+        .setDescription(count.allVotes ? '' : 'There are no votes yet!')
+        .setFooter(count.all + '/' + members + ' votes casted\nVoting ends: ')
+        .setImage(count.allVotes ? "attachment://results.png" : null)
+      await message.removeAttachments()
+      message.edit({ embeds: [newEmbed], files: newAttachment })
+    })
+  }
+  async generateResultsImage() {
+    let count = this.getResults()
+
+    let font = (await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE))
+    let imageBar = (await Jimp.read('assets/gui/percentage_bar.png'))
+    let imageMark = (await Jimp.read('assets/gui/percentage_mark.png'))
+    let margin = 57
+
+    let markText = Math.round(count.for / count.allVotes * 100)+"%"
+    let forWidth = Math.round(margin + (imageBar.bitmap.width - 2 * margin) * count.for / count.allVotes)
+    let markPos = 
+      Math.max(margin,
+      Math.min(imageBar.bitmap.width - imageMark.bitmap.width - margin,
+      forWidth - imageMark.bitmap.width / 2))
+    
+    let image = imageBar.clone().opacity(0)
+      .composite((await loadInColor(imageBar, "#3ba55d"))
+        .crop(0, 0, forWidth, imageBar.bitmap.height),
+        0, 0)
+      .composite((await loadInColor(imageBar, "#ed4245"))
+        .crop(forWidth, 0, imageBar.bitmap.width - forWidth, imageBar.bitmap.height),
+        forWidth, 0)
+      .composite((await loadInColor(imageMark, count.for/count.allVotes < this.votingThreshold?"#ed4245":"#3ba55d")),
+        markPos, 0, { mode: Jimp.BLEND_SOURCE_OVER })
+      .print(font, 
+        markPos+imageMark.bitmap.width/2-Jimp.measureText(font, markText)/2, 
+        imageMark.bitmap.height/2-8, 
+        markText)
+    return new MessageAttachment(await image.getBufferAsync(Jimp.MIME_PNG), 'results.png');
+  }
+  getResults() {
+    let count = { "for": 0, "abstain": 0, "against": 0, "all": 0 }
+    let votes = this.registry.votes
+    for (let v in votes) { count[votes[v]]++; count["all"]++ }
+    count.allVotes = count.against * 1 + count.for * 1
+    return count
+  }
+
+
+  generateButtonComponent() {
+    return new MessageActionRow()
+      .addComponents(
+        new MessageButton()
+          .setCustomId('voting:for')
+          .setLabel('For')
+          .setStyle('SUCCESS'),
+        new MessageButton()
+          .setCustomId('voting:abstain')
+          .setLabel('Abstain')
+          .setStyle('SECONDARY'),
+        new MessageButton()
+          .setCustomId('voting:against')
+          .setLabel('Against')
+          .setStyle('DANGER')
+      );
+  }
+  async generateDisplayEmbed() {
+    return new MessageEmbed()
+      .setColor('#181a43')
+      .setAuthor('VOTING', 'https://media.discordapp.net/attachments/557227661131251733/882377586204885043/voting.png')
+      .setTitle(this.proposal)
+      .setDescription(`There are no votes yet!`)
+      .setFooter('0/' + (await (this.getElligibleVoters())).size + ' votes casted\nVoting ends: ')
+      .setTimestamp(Math.round((Date.now() + this.totalDuration*1000*60) / (1000 * 60 * 15)) * 1000 * 60 * 15)
+  }
+
+
+  linkMessageAsDisplay(message) {
+    this.registry.linkedDisplays.push({channel: message.channel.id, message: message.id})
+    return this
+  }
+  linkMessageAsInput(message) {
+    this.registry.linkedInputs.push({channel: message.channel.id, message: message.id})
+    return this
+  }
+  async startThread(message) {
+    const voteThread = await message.startThread({
+      name: this.proposal,
+      autoArchiveDuration: 'MAX',
+      reason: "Thread for voting discussion"
+    })
+    const threadButtons = await voteThread.send({ content: "-", components: [this.generateButtonComponent()] })
+    this.linkMessageAsInput(threadButtons)
+    return this
+  }
+}
+
 
 
 async function loadInColor(image, color) {
@@ -35,79 +210,13 @@ async function loadInColor(image, color) {
 }
 
 
-
-
-async function castVote(interaction, guildConfig, vote) {
-  let dbId = interaction.message.id
-  let coll = ((await DataBase.get(dbId)) || {})
-
-  coll[interaction.user.id] = vote
-  await DataBase.set(dbId, coll)
-
-  return await updateVoteMessage(interaction, guildConfig)
-}
-
-async function updateVoteMessage(interaction, guildConfig) {
+async function castVote(interaction, vote) {
   interaction.deferUpdate()
-
-  let message = interaction.message
-  const voteChannel = await interaction.guild.channels.fetch(guildConfig.votingChannel)
-  await interaction.guild.members.fetch()
-  const members = voteChannel.members.filter(user => !user.user.bot)
-
-  let count = { "for": 0, "abstain": 0, "against": 0, "all": 0 }
-  let coll = ((await DataBase.get(message.id)) || {})
-  for (c in coll) { count[coll[c]]++; count["all"]++ }
-  let allVotes = count.against * 1 + count.for * 1
-
-  let votingThreshold = 0.6
-
-
-
-
-
-  let font = (await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE))
-  let imageBar = (await Jimp.read('assets/gui/percentage_bar.png'))
-  let imageMark = (await Jimp.read('assets/gui/percentage_mark.png'))
-  let margin = 57
-
-  let markText = Math.round(count.for / allVotes * 100)+"%"
-  let forWidth = Math.round(margin + (imageBar.bitmap.width - 2 * margin) * count.for / allVotes)
-  let markPos = 
-    Math.max(margin,
-    Math.min(imageBar.bitmap.width - imageMark.bitmap.width - margin,
-    forWidth - imageMark.bitmap.width / 2))
-  
-  let image = imageBar.clone().opacity(0)
-    .composite((await loadInColor(imageBar, "#3ba55d"))
-      .crop(0, 0, forWidth, imageBar.bitmap.height),
-      0, 0)
-    .composite((await loadInColor(imageBar, "#ed4245"))
-      .crop(forWidth, 0, imageBar.bitmap.width - forWidth, imageBar.bitmap.height),
-      forWidth, 0)
-    .composite((await loadInColor(imageMark, count.for/allVotes < votingThreshold?"#ed4245":"#3ba55d")),
-      markPos, 0, { mode: Jimp.BLEND_SOURCE_OVER })
-    .print(font, 
-      markPos+imageMark.bitmap.width/2-Jimp.measureText(font, markText)/2, 
-      imageMark.bitmap.height/2-8, 
-      markText)
-  const attachment = new MessageAttachment(await image.getBufferAsync(Jimp.MIME_PNG), 'results.png');
-
-
-
-
-
-  let newEmbed = new MessageEmbed(message.embeds[0])
-    .setDescription(allVotes ? '' : 'There are no votes yet!')
-    .setFooter(count.all + '/' + members.size + ' votes casted\nVoting ends: ')
-    .setImage(allVotes ? "attachment://results.png" : null)
-
-  await message.removeAttachments()
-  return await message.edit({ embeds: [newEmbed], files: allVotes ? [attachment] : [] })
+  let Vote = (await (new Voting(interaction.message.id)).findRegistry())
+            .castVote(interaction.user.id, vote)
+  Vote.pushUpdate()
+  Vote.pushRegistry()
 }
-
-
-
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -116,46 +225,24 @@ module.exports = {
     .addStringOption(option => option.setName('proposal').setDescription('The proposal for users to vote on')),
   async execute(interaction, guildConfig) {
     const guild = interaction.guild;
-    const voteChannel = await guild.channels.fetch(guildConfig.votingChannel)
-    await interaction.guild.members.fetch()
-    const members = voteChannel.members.filter(user => !user.user.bot)
+    const Vote = (new Voting(interaction.id)).register(interaction.options.getString('proposal'), guild.id)
 
-    const voteEmbed = new MessageEmbed()
-      .setColor('#181a43')
-      .setAuthor('VOTING', 'https://media.discordapp.net/attachments/557227661131251733/882377586204885043/voting.png')
-      .setTitle(interaction.options.getString('proposal'))
-      .setDescription(`There are no votes yet!`)
-      .setFooter('0/' + members.size + ' votes casted\nVoting ends: ')
-      .setTimestamp(Math.round(Date.now() / (1000 * 60 * 15) + 4 * 24 * 3) * 1000 * 60 * 15)
-
-    const voteButtons = new MessageActionRow()
-      .addComponents(
-        new MessageButton()
-          .setCustomId('voting:for')
-          .setLabel('For')
-          .setStyle('SUCCESS'),
-        new MessageButton()
-          .setCustomId('voting:abstain')
-          .setLabel('Abstain')
-          .setStyle('SECONDARY'),
-        new MessageButton()
-          .setCustomId('voting:against')
-          .setLabel('Against')
-          .setStyle('DANGER')
-      );
-
-    const voteMessage = await voteChannel.send({ embeds: [voteEmbed], components: [voteButtons] })
-    const voteThread = await voteMessage.startThread({
-      name: interaction.options.getString('proposal'),
-      autoArchiveDuration: 'MAX',
-      reason: "Thread for voting discussion"
+    const voteChannel = await Vote.getTargetChannel()
+    const voteMessage = await voteChannel.send({ 
+      embeds: [await (Vote.generateDisplayEmbed())], 
+      components: [Vote.generateButtonComponent()] 
     })
-    // voteChannel.send({ content: "-", components: [voteButtons], reply: {messageReference: voteMessage} })
+
+    await Vote.startThread(voteMessage)
+    Vote.linkMessageAsDisplay(voteMessage)
+        .linkMessageAsInput(voteMessage)
+        .pushRegistry()
+    
     return interaction.reply({ content: `**New voting created**, [click here to go to it](<${voteMessage.url}>)`, ephemeral: true });
   },
   buttons: {
-    "for": (async (int, guildConfig) => { return await castVote(int, guildConfig, "for") }),
-    "abstain": (async (int, guildConfig) => { return await castVote(int, guildConfig, "abstain") }),
-    "against": (async (int, guildConfig) => { return await castVote(int, guildConfig, "against") })
+    "for": (async (int) => { return await castVote(int, "for") }),
+    "abstain": (async (int) => { return await castVote(int, "abstain") }),
+    "against": (async (int) => { return await castVote(int, "against") })
   }
 };

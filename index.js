@@ -2,22 +2,22 @@ const fs = require('fs');
 const { Client, Intents } = require('discord.js');
 const { secrets } = require('./proxy/load.js')
 
-const client = new Client({
+DiscordClient = new Client({
   fetchAllMembers: true,
   presence: {
     status: 'online'
   },
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS]
 });
-client.login(secrets('__BOTTOKEN__'));
+DiscordClient.login(secrets('__BOTTOKEN__'));
 
 
 
-client.once('ready', () => {
+DiscordClient.once('ready', () => {
   console.log('Ready!');
   
-  let commands = require("./deploy_commands.js")(client);
+  let commands = require("./deploy_commands.js")(DiscordClient);
   commands.every(com => {
-    client.api.applications(client.user.id).guilds(secrets('_TestGuildId_')).commands.post({data: com.data});
+    DiscordClient.api.applications(DiscordClient.user.id).guilds(secrets('_TestGuildId_')).commands.post({data: com.data});
   })
 });
