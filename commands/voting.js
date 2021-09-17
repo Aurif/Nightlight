@@ -15,7 +15,8 @@ class Voting {
       guild: guildId,
       proposal: proposal,
       linkedInputs: [],
-      linkedDisplays: []
+      linkedDisplays: [],
+      linkedThreads: []
     }
     return this
   }
@@ -29,9 +30,10 @@ class Voting {
     this.registry = votingBase[this.uid]
     return this
   }
-  async pushRegistry(newData) {
+  async pushRegistry() {
     let votingBase = ((await DataBase.get("ComVoting")) || {})
-    votingBase[this.uid] = this.registry
+    if(this.registry == null) delete votingBase[this.uid]
+    else votingBase[this.uid] = this.registry
     await DataBase.set("ComVoting", votingBase)
     return this
   }
@@ -40,9 +42,10 @@ class Voting {
     if(this._elligibleVoters) return this._elligibleVoters
     if(!this.guildConfig) return new Collection()
 
-    let channel = await this.getTargetChannel()
-    await channel.guild.members.fetch()
-    this._elligibleVoters = channel.members.filter(user => !user.user.bot)
+    let guild = DiscordClient.guilds.cache.get(this.guildId)
+    await guild.members.fetch()
+    let role = await guild.roles.fetch(this.guildConfig.votingRole)
+    this._elligibleVoters = role.members.filter(user => !user.user.bot)
     return this._elligibleVoters
   }
   async getTargetChannel() {
@@ -77,8 +80,9 @@ class Voting {
     return this
   }
   async pushUpdate() {
+    if(await this.checkEarlyEnd()) return
     let count = this.getResults()
-    let members = (await this.getElligibleVoters()).size
+    let members = (await (this.getElligibleVoters())).size
     let newAttachment = count.allVotes ? [(await this.generateResultsImage())] : []
 
     this.registry.linkedDisplays.forEach(async (conf) => {
@@ -160,14 +164,6 @@ class Voting {
   }
 
 
-  linkMessageAsDisplay(message) {
-    this.registry.linkedDisplays.push({channel: message.channel.id, message: message.id})
-    return this
-  }
-  linkMessageAsInput(message) {
-    this.registry.linkedInputs.push({channel: message.channel.id, message: message.id})
-    return this
-  }
   async startThread(message) {
     const voteThread = await message.startThread({
       name: this.proposal,
@@ -175,8 +171,78 @@ class Voting {
       reason: "Thread for voting discussion"
     })
     const threadButtons = await voteThread.send({ content: "-", components: [this.generateButtonComponent()] })
+    voteThread.send({ 
+      content: `<@&${this.guildConfig.votingRole}>, new voting has started!`, 
+      allowed_mentions: {parse: ["everyone", "roles"]}
+    })
     this.linkMessageAsInput(threadButtons)
+    this.linkThread(voteThread)
     return this
+  }
+  linkThread(thread) {
+    this.registry.linkedThreads.push(thread.id)
+    return this
+  }
+  linkMessageAsInput(message) {
+    this.registry.linkedInputs.push({channel: message.channel.id, message: message.id})
+    return this
+  }
+  linkMessageAsDisplay(message) {
+    this.registry.linkedDisplays.push({channel: message.channel.id, message: message.id})
+    return this
+  }
+
+
+  async checkEarlyEnd() {
+    if(this.getResults().all == (await (this.getElligibleVoters())).size) {await this.close(); return true}
+    return false
+  }
+  async close() {
+    await this.closeDisplays()
+    this.closeInputs()
+    this.closeThreads()
+    this.clearRegistry()
+  }
+  async closeDisplays() {
+    let count = this.getResults()
+    let members = (await (this.getElligibleVoters())).size
+    let newAttachment = count.allVotes ? [(await this.generateResultsImage())] : []
+
+    let linkedDisplays = this.registry.linkedDisplays
+    linkedDisplays.forEach(async (conf) => {
+      let guild = DiscordClient.guilds.cache.get(this.guildId)
+      let channel = await guild.channels.fetch(conf.channel)
+      let message = await channel.messages.fetch(conf.message)
+      let newEmbed = new MessageEmbed(message.embeds[0])
+        .setAuthor('VOTING CLOSED', 'https://cdn.discordapp.com/attachments/557227661131251733/888447541010653184/voting_closed.png')
+        .setFooter(count.all + '/' + members + ' votes casted\n'+count.abstain+' abstain votes')
+        .setTimestamp(null)
+        .setImage(count.allVotes ? "attachment://results.png" : null)
+      await message.removeAttachments()
+      message.edit({ embeds: [newEmbed], files: newAttachment })
+    })
+  }
+  closeInputs() {
+    let linkedInputs = this.registry.linkedInputs
+    linkedInputs.forEach(async (conf) => {
+      let guild = DiscordClient.guilds.cache.get(this.guildId)
+      let channel = await guild.channels.fetch(conf.channel)
+      let message = await channel.messages.fetch(conf.message)
+      
+      message.edit({ components: [] })
+    })
+  }
+  closeThreads() {
+    let linkedThreads = this.registry.linkedThreads
+    linkedThreads.forEach(async (conf) => {
+      let guild = DiscordClient.guilds.cache.get(this.guildId)
+      let thread = await guild.channels.fetch(conf)
+      
+      thread.setArchived(true, "Voting has ended")
+    })
+  }
+  clearRegistry() {
+    this.registry = null
   }
 }
 
@@ -214,7 +280,7 @@ async function castVote(interaction, vote) {
   interaction.deferUpdate()
   let Vote = (await (new Voting(interaction.message.id)).findRegistry())
             .castVote(interaction.user.id, vote)
-  Vote.pushUpdate()
+  await Vote.pushUpdate()
   Vote.pushRegistry()
 }
 
