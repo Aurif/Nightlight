@@ -18,6 +18,7 @@ class Voting {
       linkedDisplays: [],
       linkedThreads: []
     }
+    DiscordClient.schedule(Date.now() + this.totalDuration*1000*60, "voting:ends", this.uid)
     return this
   }
   async findRegistry() {
@@ -27,6 +28,11 @@ class Voting {
       let v = votingBase[k]
       return ([...v.linkedInputs, ...v.linkedDisplays].findIndex(vv => vv.message == originalUid)!=-1)
     })
+    this.registry = votingBase[this.uid]
+    return this
+  }
+  async loadRegistry() {
+    let votingBase = ((await DataBase.get("ComVoting")) || {})
     this.registry = votingBase[this.uid]
     return this
   }
@@ -56,7 +62,7 @@ class Voting {
     this._targetChannel = await guild.channels.fetch(this.guildConfig.votingChannel)
     return this._targetChannel
   }
-  get totalDuration() {return 4320}
+  get totalDuration() {return 2}//4320}
   get votingThreshold() {return 0.6}
   get guildConfig() {
     if(this._guildConfig) return this._guildConfig
@@ -160,7 +166,8 @@ class Voting {
       .setTitle(this.proposal)
       .setDescription(`There are no votes yet!`)
       .setFooter('0/' + (await (this.getElligibleVoters())).size + ' votes casted\nVoting ends: ')
-      .setTimestamp(Math.round((Date.now() + this.totalDuration*1000*60) / (1000 * 60 * 15)) * 1000 * 60 * 15)
+      // .setTimestamp(Math.round((Date.now() + this.totalDuration*1000*60) / (1000 * 60 * 15)) * 1000 * 60 * 15)
+      .setTimestamp(Date.now() + this.totalDuration*1000*60)
   }
 
 
@@ -197,9 +204,15 @@ class Voting {
     if(this.getResults().all == (await (this.getElligibleVoters())).size) {await this.close(); return true}
     return false
   }
+  async closeAndPush() {
+    if(!this.registry) return
+    await this.close()
+    await this.pushRegistry()
+  }
   async close() {
+    if(!this.registry) return
     await this.closeDisplays()
-    this.closeInputs()
+    await this.closeInputs()
     this.closeThreads()
     this.clearRegistry()
   }
@@ -209,7 +222,7 @@ class Voting {
     let newAttachment = count.allVotes ? [(await this.generateResultsImage())] : []
 
     let linkedDisplays = this.registry.linkedDisplays
-    linkedDisplays.forEach(async (conf) => {
+    for(let conf of linkedDisplays) {
       let guild = DiscordClient.guilds.cache.get(this.guildId)
       let channel = await guild.channels.fetch(conf.channel)
       let message = await channel.messages.fetch(conf.message)
@@ -219,18 +232,18 @@ class Voting {
         .setTimestamp(null)
         .setImage(count.allVotes ? "attachment://results.png" : null)
       await message.removeAttachments()
-      message.edit({ embeds: [newEmbed], files: newAttachment })
-    })
+      await message.edit({ embeds: [newEmbed], files: newAttachment })
+    }
   }
-  closeInputs() {
+  async closeInputs() {
     let linkedInputs = this.registry.linkedInputs
-    linkedInputs.forEach(async (conf) => {
+    for(let conf of linkedInputs) {
       let guild = DiscordClient.guilds.cache.get(this.guildId)
       let channel = await guild.channels.fetch(conf.channel)
       let message = await channel.messages.fetch(conf.message)
       
-      message.edit({ components: [] })
-    })
+      await message.edit({ components: [] })
+    }
   }
   closeThreads() {
     let linkedThreads = this.registry.linkedThreads
@@ -310,5 +323,8 @@ module.exports = {
     "for": (async (int) => { return await castVote(int, "for") }),
     "abstain": (async (int) => { return await castVote(int, "abstain") }),
     "against": (async (int) => { return await castVote(int, "against") })
+  },
+  listeners: {
+    "ends": (async (id) => {(await (new Voting(id)).loadRegistry()).closeAndPush()})
   }
 };
