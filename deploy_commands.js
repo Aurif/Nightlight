@@ -2,7 +2,6 @@ const fs = require('fs');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const { Collection } = require('discord.js');
-const { secrets } = require("./proxy/load.js");
 
 
 DiscordClient.commands = new Collection();
@@ -17,11 +16,11 @@ for (const file of commandFiles) {
 
 
 
-// const rest = new REST({ version: '9' }).setToken(secrets('__BOTTOKEN__'));
+// const rest = new REST({ version: '9' }).setToken(Secrets('__BOTTOKEN__'));
 // (async () => {
 // 	try {
 // 		await rest.put(
-//       Routes.applicationCommands(secrets('__CLIENTID__')),
+//       Routes.applicationCommands(Secrets('__CLIENTID__')),
 //       { body: DiscordClient.commands },
 //     );
 

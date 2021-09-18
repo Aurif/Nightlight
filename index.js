@@ -1,6 +1,6 @@
+require("./proxy/load.js");
 const fs = require('fs');
 const { Client, Intents } = require('discord.js');
-const { secrets } = require('./proxy/load.js')
 
 DiscordClient = new Client({
   fetchAllMembers: true,
@@ -9,7 +9,7 @@ DiscordClient = new Client({
   },
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS]
 });
-DiscordClient.login(secrets('__BOTTOKEN__'));
+DiscordClient.login(Secrets('__BOTTOKEN__'));
 
 
 
@@ -18,7 +18,7 @@ DiscordClient.once('ready', async () => {
   
   let commands = require("./deploy_commands.js");
   commands.every(com => {
-    DiscordClient.api.applications(DiscordClient.user.id).guilds(secrets('_TestGuildId_')).commands.post({data: com.data});
+    DiscordClient.api.applications(DiscordClient.user.id).guilds(Secrets('_TestGuildId_')).commands.post({data: com.data});
   });
 
   await require("./scheduler.js")();

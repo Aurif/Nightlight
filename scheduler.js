@@ -1,5 +1,3 @@
-const { DataBase } = require("./proxy/load.js")
-
 module.exports = async () => {
   async function launchSchedule(id, target, payload) {
     DiscordClient.shout(target, payload)

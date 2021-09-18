@@ -1,4 +1,3 @@
-const { DataBase } = require("./../proxy/load.js");
 (async ()=>{
   let timestamps = ((await DataBase.get("ComGreet")) || {})
   let guilds = []

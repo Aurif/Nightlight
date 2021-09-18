@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageButton, MessageEmbed, MessageAttachment } = require('discord.js');
 const { Collection } = require('discord.js');
-const { DataBase } = require("./../proxy/load.js");
 var Jimp = require('jimp');
 var tinycolor = require("tinycolor2");
 

@@ -1,7 +1,4 @@
 const environment = "replit"
 
-
-module.exports = {
-  DataBase: require(`./${environment}/database.js`),
-  secrets: require(`./${environment}/secrets.js`),
-}
+DataBase = require(`./${environment}/database.js`)
+Secrets = require(`./${environment}/secrets.js`)
