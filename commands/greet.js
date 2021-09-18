@@ -25,7 +25,7 @@ function greetUser(member, keys) {
   let guildConfigRaw = require('../guild_configs/'+member.guild.id+'.json').greet
   if(!guildConfigRaw) return
   let guildConfig = []
-  for(let k of keys) guildConfig = guildConfig.concat(guildConfigRaw[k])
+  for(let k of keys) guildConfig = guildConfig.concat(guildConfigRaw[k]||[])
   for(let act of guildConfig) {
     DiscordClient.shout(act[0], act[1], {
       guild: member.guild, 
