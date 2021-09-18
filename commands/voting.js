@@ -48,10 +48,9 @@ class Voting {
     if(this._elligibleVoters) return this._elligibleVoters
     if(!this.guildConfig) return new Collection()
 
-    let guild = DiscordClient.guilds.cache.get(this.guildId)
-    await guild.members.fetch()
-    let role = await guild.roles.fetch(this.guildConfig.votingRole)
-    this._elligibleVoters = role.members.filter(user => !user.user.bot)
+    let channel = await this.getTargetChannel()
+    await channel.guild.members.fetch()
+    this._elligibleVoters = channel.members.filter(user => !user.user.bot)
     return this._elligibleVoters
   }
   async getTargetChannel() {
@@ -59,16 +58,16 @@ class Voting {
     if(!this.guildConfig) return []
 
     let guild = DiscordClient.guilds.cache.get(this.guildId)
-    this._targetChannel = await guild.channels.fetch(this.guildConfig.votingChannel)
+    this._targetChannel = await guild.channels.fetch(this.guildConfig["channelToPost"])
     return this._targetChannel
   }
-  get totalDuration() {return 2}//4320}
-  get votingThreshold() {return 0.6}
+  get totalDuration() {return this.guildConfig["timeToVote"]}
+  get votingThreshold() {return this.guildConfig["requiredVoteRatio"]}
   get guildConfig() {
     if(this._guildConfig) return this._guildConfig
     if(!this.guildId) return {}
 
-    this._guildConfig = require('../guild_configs/'+this.guildId+'.json')
+    this._guildConfig = require('../guild_configs/'+this.guildId+'.json').voting
     return this._guildConfig
   }
   get guildId() {
@@ -147,22 +146,22 @@ class Voting {
       .addComponents(
         new MessageButton()
           .setCustomId('voting:for')
-          .setLabel('For')
+          .setLabel(this.guildConfig["buttonLabelFor"])
           .setStyle('SUCCESS'),
         new MessageButton()
           .setCustomId('voting:abstain')
-          .setLabel('Abstain')
+          .setLabel(this.guildConfig["buttonLabelAbstain"])
           .setStyle('SECONDARY'),
         new MessageButton()
           .setCustomId('voting:against')
-          .setLabel('Against')
+          .setLabel(this.guildConfig["buttonLabelAgainst"])
           .setStyle('DANGER')
       );
   }
   async generateDisplayEmbed() {
     return new MessageEmbed()
       .setColor('#181a43')
-      .setAuthor('VOTING', 'https://media.discordapp.net/attachments/557227661131251733/882377586204885043/voting.png')
+      .setAuthor('VOTING', this.guildConfig["votingIcon"])
       .setTitle(this.proposal)
       .setDescription(`There are no votes yet!`)
       .setFooter('0/' + (await (this.getElligibleVoters())).size + ' votes casted\nVoting ends: ')
@@ -178,8 +177,8 @@ class Voting {
       reason: "Thread for voting discussion"
     })
     const threadButtons = await voteThread.send({ content: "-", components: [this.generateButtonComponent()] })
-    voteThread.send({ 
-      content: `<@&${this.guildConfig.votingRole}>, new voting has started!`, 
+    if(this.guildConfig["threadCreationMessage"]) voteThread.send({ 
+      content: this.guildConfig["threadCreationMessage"], 
       allowed_mentions: {parse: ["everyone", "roles"]}
     })
     this.linkMessageAsInput(threadButtons)
@@ -201,7 +200,7 @@ class Voting {
 
 
   async checkEarlyEnd() {
-    if(this.getResults().all == (await (this.getElligibleVoters())).size) {await this.close(); return true}
+    if(this.guildConfig["endEarlyWhenEveryoneVoted"] && this.getResults().all == (await (this.getElligibleVoters())).size) {await this.close(); return true}
     return false
   }
   async closeAndPush() {
@@ -227,7 +226,7 @@ class Voting {
       let channel = await guild.channels.fetch(conf.channel)
       let message = await channel.messages.fetch(conf.message)
       let newEmbed = new MessageEmbed(message.embeds[0])
-        .setAuthor('VOTING CLOSED', 'https://cdn.discordapp.com/attachments/557227661131251733/888447541010653184/voting_closed.png')
+        .setAuthor('VOTING CLOSED', this.guildConfig["votingClosedIcon"])
         .setFooter(count.all + '/' + members + ' votes casted\n'+count.abstain+' abstain votes')
         .setTimestamp(null)
         .setImage(count.allVotes ? "attachment://results.png" : null)
@@ -246,6 +245,7 @@ class Voting {
     }
   }
   closeThreads() {
+    if(!this.guildConfig["closeThreadOnceVotingEnds"]) return
     let linkedThreads = this.registry.linkedThreads
     linkedThreads.forEach(async (conf) => {
       let guild = DiscordClient.guilds.cache.get(this.guildId)
@@ -298,27 +298,29 @@ async function castVote(interaction, vote) {
 }
 
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('voting')
-    .setDescription('Creates a new for/against voting.')
-    .addStringOption(option => option.setName('proposal').setDescription('The proposal for users to vote on')),
-  async execute(interaction, guildConfig) {
-    const guild = interaction.guild;
-    const Vote = (new Voting(interaction.id)).register(interaction.options.getString('proposal'), guild.id)
+  commands: [{
+    data: new SlashCommandBuilder()
+      .setName('voting')
+      .setDescription('Creates a new for/against voting.')
+      .addStringOption(option => option.setName('proposal').setDescription('The proposal for users to vote on')),
+    async execute(interaction, guildConfig) {
+      const guild = interaction.guild;
+      const Vote = (new Voting(interaction.id)).register(interaction.options.getString('proposal'), guild.id)
 
-    const voteChannel = await Vote.getTargetChannel()
-    const voteMessage = await voteChannel.send({ 
-      embeds: [await (Vote.generateDisplayEmbed())], 
-      components: [Vote.generateButtonComponent()] 
-    })
+      const voteChannel = await Vote.getTargetChannel()
+      const voteMessage = await voteChannel.send({ 
+        embeds: [await (Vote.generateDisplayEmbed())], 
+        components: [Vote.generateButtonComponent()] 
+      })
 
-    await Vote.startThread(voteMessage)
-    Vote.linkMessageAsDisplay(voteMessage)
-        .linkMessageAsInput(voteMessage)
-        .pushRegistry()
-    
-    return interaction.reply({ content: `**New voting created**, [click here to go to it](<${voteMessage.url}>)`, ephemeral: true });
-  },
+      if(Vote.guildConfig["createThread"]) await Vote.startThread(voteMessage)
+      Vote.linkMessageAsDisplay(voteMessage)
+          .linkMessageAsInput(voteMessage)
+          .pushRegistry()
+      
+      return interaction.reply({ content: `**New voting created**, [click here to go to it](<${voteMessage.url}>)`, ephemeral: Vote.guildConfig["votingCreationAnonymous"]==true });
+    }
+  }],
   buttons: {
     "for": (async (int) => { return await castVote(int, "for") }),
     "abstain": (async (int) => { return await castVote(int, "abstain") }),

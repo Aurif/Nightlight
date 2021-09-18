@@ -1,0 +1,22 @@
+{
+  "voting": {
+    "votingCreationAnonymous": true,
+    "channelToPost": "823946058241540107",
+    "createThread": true,
+    "threadCreationMessage": "<@&812786551242883143>, new voting has started!",
+    "timeToVote": 4320,
+    "requiredVoteRatio": 0.6,
+    "votingIcon": "https://media.discordapp.net/attachments/557227661131251733/882377586204885043/voting.png",
+    "votingClosedIcon": "https://cdn.discordapp.com/attachments/557227661131251733/888447541010653184/voting_closed.png",
+    "buttonLabelFor": "Yes",
+    "buttonLabelAgainst": "No",
+    "buttonLabelAbstain": "Don't care",
+    "endEarlyWhenEveryoneVoted": false,
+    "closeThreadOnceVotingEnds": true
+  },
+  "greet": {
+    "strong": [
+      ["base:message", {"message": "**Initiate ${member}**\nStatus: In progress", "channel": "849295862969401394"}]
+    ]
+  }
+}

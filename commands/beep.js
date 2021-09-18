@@ -1,10 +1,12 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 
 module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('beep')
-		.setDescription('Beep!'),
-	async execute(interaction) {
-		return interaction.reply('Boop!');
-	},
+  commands: [{
+    data: new SlashCommandBuilder()
+      .setName('beep')
+      .setDescription('Beep!'),
+    async execute(interaction) {
+      return interaction.reply({content: 'Boop!', ephemeral: true});
+    }
+  }]
 };

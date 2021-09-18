@@ -6,10 +6,13 @@ const { secrets } = require("./proxy/load.js");
 
 
 DiscordClient.commands = new Collection();
+DiscordClient.modules = new Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  DiscordClient.commands.set(command.data.name, command);
+  const commandData = require(`./commands/${file}`);
+  DiscordClient.modules.set(file.slice(0,-3), commandData);
+  if(commandData.commands) for(let command of commandData.commands)
+    DiscordClient.commands.set(command.data.name, command);
 }
 
 
@@ -44,7 +47,7 @@ const commandHandler = async interaction => {
 }
 
 const buttonHandler = async interaction => {
-  const command = DiscordClient.commands.get(interaction.customId.split(":")[0]);
+  const command = DiscordClient.modules.get(interaction.customId.split(":")[0]);
   const button = command.buttons[interaction.customId.split(":")[1]];
   
   try {
@@ -62,12 +65,12 @@ DiscordClient.on('interactionCreate', async interaction => {
 });
 
 
-DiscordClient.shout = (target, payload) => {
-  const command = DiscordClient.commands.get(target.split(":")[0]);
+DiscordClient.shout = (target, payload, context) => {
+  const command = DiscordClient.modules.get(target.split(":")[0]);
   const listener = command.listeners[target.split(":")[1]];
   
   try {
-    return listener(payload)
+    return listener(payload, context)
   } catch (error) {
     console.error(error);
   }
