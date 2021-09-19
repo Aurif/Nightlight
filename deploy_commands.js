@@ -14,7 +14,8 @@ for (const file of commandFiles) {
     DiscordClient.commands.set(command.data.name, command);
 }
 
-
+let jsonCommands = []
+DiscordClient.commands.each(com => jsonCommands.push(com.data.toJSON()))
 
 // const rest = new REST({ version: '9' }).setToken(Secrets('__BOTTOKEN__'));
 // (async () => {
@@ -29,6 +30,22 @@ for (const file of commandFiles) {
 // 		console.error(error);
 // 	}
 // })();
+
+const rest = new REST({ version: '9' }).setToken(Secrets('__BOTTOKEN__'));
+(async () => {
+	try {
+		console.log('Started refreshing application (/) commands.');
+
+		await rest.put(
+			Routes.applicationGuildCommands(Secrets('__CLIENTID__'), Secrets('_TestGuildId_')),
+			{ body: jsonCommands },
+		);
+
+		console.log('Successfully reloaded application (/) commands.');
+	} catch (error) {
+		console.error(error);
+	}
+})();
 
 
 

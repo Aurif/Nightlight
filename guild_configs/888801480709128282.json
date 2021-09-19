@@ -23,5 +23,13 @@
         ["base:message", {"message": "${member} remember to behave", "channel": "888801481896128524"}]
       }]
     ]
+  },
+  "reminders": {
+    "889159128344297492": {
+      "time": 0.2,
+      "actions": [
+        ["base:message", {"message": "This is your daily reminder", "channel": "888801481896128524"}]
+      ]
+    }
   }
 }

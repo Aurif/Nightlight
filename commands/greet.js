@@ -1,24 +1,13 @@
-(async ()=>{
-  let timestamps = ((await DataBase.get("ComGreet")) || {})
-  let guilds = []
-  DiscordClient.guilds.cache.each(g => guilds.push(g))
-  for(let guild of guilds) {
-    let members = await guild.members.fetch()
-    members.each(m => {
-      if(!(timestamps[guild.id] > m.joinedAt)) greetUser(m, ["strong", "retro"])
-    })
-
-    timestamps[guild.id] = Date.now() 
-  }
-  await DataBase.set("ComGreet", timestamps)
-})();
+DiscordClient.scheduler.timestampedInit(async (guild, timestamp) => {
+  let members = await guild.members.fetch()
+  members.each(m => {
+    if(!(timestamp > m.joinedAt)) greetUser(m, ["strong", "retro"])
+  })
+})
 
 DiscordClient.on('guildMemberAdd', async (member) => {
   greetUser(member, ["weak", "strong"])
-
-  let timestamps = ((await DataBase.get("ComGreet")) || {})
-  timestamps[member.guild.id] = Date.now()
-  DataBase.set("ComGreet", timestamps)
+  DiscordClient.scheduler.updateTimestamp(member.guild.id)
 })
 
 function greetUser(member, keys) {
