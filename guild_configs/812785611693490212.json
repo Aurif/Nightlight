@@ -20,5 +20,13 @@
         ["base:message", {"message": "**Initiate ${member}**\nStatus: In progress", "channel": "849295862969401394"}]
       }]
     ]
+  },
+  "reminders": {
+    "849295862969401394": {
+      "time": 20160,
+      "actions": [
+        ["base:messageQuote", {"message": "This item has been inactive for over ${formatDuration@lastChange}.\nPlease, update its progress or mark it as abandoned.", "channel": "812786736312614954", "target": "message"}]
+      ]
+    }
   }
 }

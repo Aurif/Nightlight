@@ -26,9 +26,9 @@
   },
   "reminders": {
     "889159128344297492": {
-      "time": 0.2,
+      "time": 15,
       "actions": [
-        ["base:message", {"message": "This is your daily reminder", "channel": "888801481896128524"}]
+        ["base:messageQuote", {"message": "This is your daily reminder, it's been ${formatDuration@lastChange} since the accident", "channel": "888801481896128524", "target": "message"}]
       ]
     }
   }

@@ -6,8 +6,8 @@ DiscordClient.scheduler.timestampedInit(async (guild, timestamp) => {
     let messages = await channel.messages.fetch()
 
     messages.each(mess => {
-      let messTime = (mess.editedAt || mess.createdAt)*1
-      if(!(messTime > timestamp))
+      let messTime = mess.createdAt*1
+      if(!(messTime < timestamp))
         DiscordClient.schedule(messTime+config[channelId].time*60000, "reminders:run", {guild: guild.id, channel: channelId, message: mess.id})
     })
   }
@@ -18,6 +18,7 @@ DiscordClient.on('messageCreate', async (message) => {
   config = config[message.channel.id]; if(!config) return
 
   DiscordClient.schedule(Date.now()+config.time*60000, "reminders:run", {guild: message.guild.id, channel: message.channel.id, message: message.id})
+  DiscordClient.scheduler.updateTimestamp(message.guild.id)
 })
 
 
@@ -41,7 +42,7 @@ module.exports = {
             guild: guild, 
             channel: channel,
             message: message,
-            lastChange: Date.now()-messTime
+            lastChange: (Date.now()-messTime)/1000
           })
         }
         messTime = Date.now()
