@@ -19,7 +19,9 @@
       ["base:message", {"message": "No way, ${member} just joined!", "channel": "888801481896128524"}]
     ],
     "strong": [
-      ["base:message", {"message": "${member} remember to behave", "channel": "888801481896128524"}]
+      ["if:hasNoRoles", {"target": "member", "action": 
+        ["base:message", {"message": "${member} remember to behave", "channel": "888801481896128524"}]
+      }]
     ]
   }
 }

@@ -16,7 +16,9 @@
   },
   "greet": {
     "strong": [
-      ["base:message", {"message": "**Initiate ${member}**\nStatus: In progress", "channel": "849295862969401394"}]
+      ["if:hasNoRoles", {"target": "member", "action": 
+        ["base:message", {"message": "**Initiate ${member}**\nStatus: In progress", "channel": "849295862969401394"}]
+      }]
     ]
   }
 }
