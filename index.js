@@ -7,7 +7,12 @@ DiscordClient = new Client({
   presence: {
     status: 'online'
   },
-  intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_MESSAGES]
+  intents: [
+    Intents.FLAGS.GUILDS,
+    Intents.FLAGS.GUILD_MEMBERS,
+    Intents.FLAGS.GUILD_MESSAGES,
+    Intents.FLAGS.GUILD_VOICE_STATES
+     ]
 });
 DiscordClient.login(Secrets('__BOTTOKEN__'));
 
