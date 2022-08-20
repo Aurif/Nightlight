@@ -1,6 +1,5 @@
-const world = 'world';
+import { forGuild } from "./core/init";
+import { TestModule } from "./modules";
 
-export function hello(who: string = world): string {
-  return `Hello ${who}! `;
-}
-console.log(hello("World"));
+forGuild("123")
+  .use(TestModule({intervals: [1000, 700]}));
