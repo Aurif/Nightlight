@@ -1,5 +1,5 @@
 import { Trigger } from "../logic"
-import { Context, GlobalContext } from "../context"
+import { Context, FrozenContext } from "../context"
 
 type Params = {
     time: number
@@ -9,8 +9,8 @@ type ContextAdditions = {
     intervalRepetition: number
 }
 
-export default class IntervalTrigger extends Trigger<Params, ContextAdditions> {
-    public init(parameters: Params, globalContext: GlobalContext, callback: (context: Context<ContextAdditions>) => void): void {
+export default class IntervalTrigger<EnvContext> extends Trigger<Params, ContextAdditions, EnvContext> {
+    public init(parameters: Params, globalContext: FrozenContext<EnvContext>, callback: (context: Context<EnvContext & ContextAdditions>) => void): void {
         let newContext = globalContext.add({intervalTime: parameters.time});
 
         let counter = 0;

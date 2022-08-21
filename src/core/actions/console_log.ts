@@ -1,12 +1,13 @@
 import { Action } from "../logic"
-import { Context } from "../context"
+import { FrozenContext } from "../context"
 
 type Params = {
     message: string
 }
 
-export default class ConsoleLogAction<ContextAdditions> extends Action<Params, ContextAdditions> {
-    public run(parameters: Params, _context: Context<ContextAdditions>): void {
+export default class ConsoleLogAction<ContextAdditions extends {guildId: string}> extends Action<Params, ContextAdditions> {
+    public run(parameters: Params, context: FrozenContext<ContextAdditions>): void {
         console.log(parameters.message)
+        context.add({loggedMessage: parameters.message})
     }
 }
