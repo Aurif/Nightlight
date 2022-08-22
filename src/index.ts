@@ -1,5 +1,5 @@
-import { DiscordModule } from "./discord/module";
-import { TestScenario } from "./scenarios";
+import { DiscordGuildModule } from "./discord/module";
+import TheGateScenario from "./scenarios/the_gate";
 
-new DiscordModule({guildId: "123"})
-  .use(new TestScenario({intervals: [1000, 700]}));
+new DiscordGuildModule({guildId: "888801480709128282", tokenKey: "discordBotToken"})
+  .use(new TheGateScenario({channelId: "888801481896128524"}));

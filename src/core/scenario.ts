@@ -10,7 +10,7 @@ export abstract class Scenario<Params, EnvContext> {
     public build(context: FrozenContext<EnvContext>) {
         this.init(this.parameters, new ScenarioCreator(context));
     }
-    public abstract init(parameters: Params, create: ScenarioCreator<EnvContext>): void;
+    protected abstract init(parameters: Params, create: ScenarioCreator<EnvContext>): void;
 }
 export class ScenarioCreator<EnvContext> {
     private context: FrozenContext<EnvContext>;

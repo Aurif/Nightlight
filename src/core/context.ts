@@ -36,6 +36,6 @@ class FrozenContextClass<Fields extends {[name: string]: any}> extends ContextCl
 }
 
 
-const globalContext = (new ContextClass()).add({"log": console.log})
+const globalContext = (new ContextClass<{}>()).add({"log": console.log})
 export type GlobalContext = typeof globalContext
 export function getGlobalContext(): GlobalContext {return globalContext}

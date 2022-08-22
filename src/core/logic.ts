@@ -24,10 +24,10 @@ export abstract class Trigger<Params, ContextAdditions, EnvContext> {
         this.parameters = parameters;
     }
 
-    public build(globalContext: FrozenContext<EnvContext>, callback: (context: Context<EnvContext & ContextAdditions>) => void): void {
-        this.init(this.parameters, globalContext, callback);
+    public build(context: FrozenContext<EnvContext>, callback: (context: Context<EnvContext & ContextAdditions>) => void): void {
+        this.init(this.parameters, context, callback);
     }
-    public abstract init(parameters: Params, globalContext: FrozenContext<EnvContext>, callback: (context: Context<EnvContext & ContextAdditions>) => void): void;
+    protected abstract init(parameters: Params, context: FrozenContext<EnvContext>, callback: (context: Context<EnvContext & ContextAdditions>) => void): void;
 }
 
 
@@ -44,5 +44,5 @@ export abstract class Action<Params, ContextAdditions> {
         else
             this.run(this.parameters, context);
     }
-    public abstract run(parameters: Params, context: FrozenContext<ContextAdditions>): void;
+    protected abstract run(parameters: Params, context: FrozenContext<ContextAdditions>): void;
 }
