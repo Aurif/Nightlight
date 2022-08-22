@@ -1,11 +1,16 @@
+import * as logging from "./logging";
+
 export type Context<Fields extends {[name: string]: any}> = ContextClass<Fields> & {readonly [P in keyof Fields]: P extends "isFrozen" ? never : Fields[P]};
 class ContextClass<Fields extends {[name: string]: any}> {
-    public constructor(sourceContext?: ContextClass<Fields>) {
+    public readonly _name : string = "global";
+    public constructor(sourceContext?: ContextClass<Fields>, name?: string) {
         if(sourceContext)
             for(let key in sourceContext) {
                 // @ts-ignore
                 this[key] = sourceContext[key]
             }
+        if(name)
+            this._name = name;
     }
 
     public add<ValuesType extends {[name: string]: any}>(values: ValuesType): Context<Fields & ValuesType> {
@@ -16,8 +21,8 @@ class ContextClass<Fields extends {[name: string]: any}> {
         return this as ContextClass<Fields> as Context<Fields & ValuesType>
     }
 
-    public freeze(): FrozenContext<Fields> {
-        return new FrozenContextClass(this) as FrozenContext<Fields>
+    public freeze(name: string, id?: number): FrozenContext<Fields> {
+        return new FrozenContextClass(this, getSubContextName(this._name, name, id)) as FrozenContext<Fields>
     }
 }
 
@@ -29,13 +34,13 @@ class FrozenContextClass<Fields extends {[name: string]: any}> extends ContextCl
         newContext.add(values);
         return newContext;
     }
-
-    public freeze(): FrozenContext<Fields> {
-        return this as FrozenContextClass<Fields> as FrozenContext<Fields>;
-    }
 }
 
+export function getSubContextName(previousName: string, name: string, id?: number) {
+    return (previousName == "global"?"":previousName+".")+(id==undefined?"":`${(""+id).padStart(2, "0")}_`)+name;
+}
 
-const globalContext = (new ContextClass<{}>()).add({"log": console.log})
+// TODO: change to proper logging type
+const globalContext = (new ContextClass<{}>()).add({"log": logging.logInit})
 export type GlobalContext = typeof globalContext
 export function getGlobalContext(): GlobalContext {return globalContext}

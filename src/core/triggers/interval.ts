@@ -10,7 +10,7 @@ type ContextAdditions = {
 }
 
 export default class IntervalTrigger<EnvContext> extends Trigger<Params, ContextAdditions, EnvContext> {
-    protected init(parameters: Params, context: FrozenContext<EnvContext>, callback: (context: Context<EnvContext & ContextAdditions>) => void): void {
+    protected async init(parameters: Params, context: FrozenContext<EnvContext>, callback: (context: Context<EnvContext & ContextAdditions>) => void): Promise<void> {
         let newContext = context.add({intervalTime: parameters.time});
 
         let counter = 0;
