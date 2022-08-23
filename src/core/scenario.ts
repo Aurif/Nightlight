@@ -1,25 +1,54 @@
 import { FrozenContext } from "./context";
 import { LogicUnit, Trigger } from "./logic";
+import { EnvironmentContext } from "./module";
 
-export abstract class Scenario<Params, EnvContext> {
+export abstract class Scenario<Params, EnvContext extends EnvironmentContext> {
     private parameters: Params;
+    private initializers: ScenarioInitializer<EnvContext>[] = [];
     public constructor(parameters: Params) {
         this.parameters = parameters;
     }
 
-    public build(context: FrozenContext<EnvContext>) {
-        this.init(this.parameters, new ScenarioCreator(context));
+    public async prebuild(context: FrozenContext<{} & EnvContext["preinit"]>): Promise<void> {
+        this.initializers = await new Promise((resolve) => {
+            this.do(this.parameters, new ScenarioCreator(context, resolve));
+        })
     }
-    protected abstract init(parameters: Params, create: ScenarioCreator<EnvContext>): void;
+    public build(context: FrozenContext<EnvContext["init"]>): void {
+        this.initializers.forEach(initializer => initializer(context));
+    }
+
+    protected abstract do(parameters: Params, create: ScenarioCreator<EnvContext>): void;
 }
-export class ScenarioCreator<EnvContext> {
-    private context: FrozenContext<EnvContext>;
-    private nextTriggerId = 0;
-    constructor(context: FrozenContext<EnvContext>) {
+
+type ScenarioInitializer<EnvContext extends EnvironmentContext> = (context: FrozenContext<EnvContext["init"]>) => void;
+export class ScenarioCreator<EnvContext extends EnvironmentContext> {
+    private readonly context: FrozenContext<{} & EnvContext["preinit"]>;
+    private logicUnits: LogicUnit<any, any, EnvContext>[] = [];
+    private afterPreinit: ((initializers: ScenarioInitializer<EnvContext>[]) => void) | null;
+    private preinitsAwaiting = 0;
+    constructor(context: FrozenContext<{} & EnvContext["preinit"]>, afterPreinit: (initializers: ScenarioInitializer<EnvContext>[]) => void) {
         this.context = context;
+        this.afterPreinit = afterPreinit;
     }
 
     public on<TriggerParams, TriggerContextAdditions>(trigger: Trigger<TriggerParams, TriggerContextAdditions, EnvContext>): LogicUnit<TriggerParams, TriggerContextAdditions, EnvContext> {
-        return new LogicUnit<TriggerParams, TriggerContextAdditions, EnvContext>(trigger, this.context, this.nextTriggerId++);
+        let logicUnit = new LogicUnit<TriggerParams, TriggerContextAdditions, EnvContext>(trigger, this.context, this.logicUnits.length, this.newPreinitAwaiter.bind(this));
+        this.logicUnits.push(logicUnit);
+        return logicUnit;
+    }
+    private newPreinitAwaiter(promise: Promise<any>) {
+        if(this.afterPreinit === null) 
+            throw new Error("Tried to add preinit awaiter after preinit phase");
+        this.preinitsAwaiting++;
+        promise.then(() => {
+            this.preinitsAwaiting--;
+            if(this.preinitsAwaiting == 0)
+                this.afterPreinitAwaiter();
+        })
+    }
+    private afterPreinitAwaiter(): void {
+        this.afterPreinit!(this.logicUnits.map(unit => unit.build.bind(unit)));
+        this.afterPreinit = null;
     }
 }

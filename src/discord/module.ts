@@ -1,4 +1,4 @@
-import { Client, Guild, IntentsBitField } from 'discord.js';
+import { Client, GatewayIntentBits, Guild, IntentsBitField } from 'discord.js';
 import { Context, GlobalContext } from "../core/context";
 import Module from "../core/module";
 import { Secrets, SecretsKey } from '../core/utils/secrets';
@@ -7,14 +7,27 @@ type Params = {
     guildId: string,
     tokenKey: SecretsKey
 }
-type EnvContext = {
-    discordGuild: Guild
+export type DiscordEnvContext = {
+    preinit: {
+        registerIntent: (intent: GatewayIntentBits) => void
+    },
+    init: {
+        discordGuild: Guild
+    }
 }
 
-export class DiscordGuildModule extends Module<Params, EnvContext> {
-    protected async init(context: GlobalContext, parameters: Params): Promise<Context<EnvContext>> {
+export class DiscordGuildModule extends Module<Params, DiscordEnvContext> {
+    private intents: GatewayIntentBits[] = [];
+    protected async preinit(context: GlobalContext, _parameters: Params): Promise<Context<DiscordEnvContext["preinit"]>> {
+        return context.add({"registerIntent": this.registerIntent.bind(this)});
+    };
+    private registerIntent(intent: GatewayIntentBits): void {
+        this.intents.push(intent);
+    }
+
+    protected async init(context: Context<GlobalContext>, parameters: Params): Promise<Context<DiscordEnvContext['init']>> {
         const myIntents = new IntentsBitField();
-        myIntents.add(IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.MessageContent, IntentsBitField.Flags.GuildMessages);
+        myIntents.add(...this.intents);
 
         const client = new Client({ intents: myIntents });
         client.login(Secrets.get(parameters.tokenKey));

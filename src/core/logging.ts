@@ -1,17 +1,10 @@
-export enum logType {
-    init = "|INIT|",
-    run = "|RUN|",
-    error = "!ERROR!",
+// TODO: add a way to log to a file
+export function log(message: string) {
+    console.log(message);
 }
-export function log(message: string, type: logType) {
-    console.log(type+" "+message);
-}
-export function logInit(message: string) {
-    log(message, logType.init);
+export function logInit(message: string, phase="INIT") {
+    log(`|${phase}| ${message}`);
 }
 export function logRun(message: string) {
-    log(message, logType.run);
-}
-export function logError(message: string) {
-    log(message, logType.error);
+    log("|RUN| "+message);
 }
