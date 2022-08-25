@@ -1,3 +1,4 @@
+import DelayModifier from "../core/modifiers/delay";
 import { ScenarioCreator, Scenario } from "../core/scenario";
 import SendMessageAction from "../discord/actions/send_message";
 import { DiscordEnvContext } from "../discord/module";
@@ -11,6 +12,8 @@ export default class TheGateScenario<EnvContext extends DiscordEnvContext> exten
     public do(parameters: Params, create: ScenarioCreator<EnvContext>): void {
         create.on(new MessageSentTrigger({channelId: parameters.channelId}))
               .do(new SendMessageAction(ctx =>({message: `Received message \`${ctx.receivedMessage.content}\``, channelId: parameters.channelId})))
+              .do(new DelayModifier({delay: 20000}))
+              .do(new SendMessageAction(ctx =>({message: `Repeating, received message \`${ctx.receivedMessage.content}\``, channelId: parameters.channelId, replyTo: ctx.sentMessage})))
     }
     
 }

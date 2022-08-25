@@ -1,7 +1,8 @@
 import { FrozenContext } from "./context";
-import { LogicUnit, Trigger } from "./logic";
+import { ChainLink, Chain } from "./logic";
 import { EnvironmentContext } from "./module";
 
+// TODO: scenarios don't have their own init/preinit code, so maybe skip this level of logging? Or change how module logging works? But logging module finished init requires quite a bit of a rewrite
 export abstract class Scenario<Params, EnvContext extends EnvironmentContext> {
     private parameters: Params;
     private initializers: ScenarioInitializer<EnvContext>[] = [];
@@ -24,7 +25,7 @@ export abstract class Scenario<Params, EnvContext extends EnvironmentContext> {
 type ScenarioInitializer<EnvContext extends EnvironmentContext> = (context: FrozenContext<EnvContext["init"]>) => void;
 export class ScenarioCreator<EnvContext extends EnvironmentContext> {
     private readonly context: FrozenContext<{} & EnvContext["preinit"]>;
-    private logicUnits: LogicUnit<any, any, EnvContext>[] = [];
+    private logicUnits: ChainLink<any, any, EnvContext>[] = [];
     private afterPreinit: ((initializers: ScenarioInitializer<EnvContext>[]) => void) | null;
     private preinitsAwaiting = 0;
     constructor(context: FrozenContext<{} & EnvContext["preinit"]>, afterPreinit: (initializers: ScenarioInitializer<EnvContext>[]) => void) {
@@ -32,8 +33,8 @@ export class ScenarioCreator<EnvContext extends EnvironmentContext> {
         this.afterPreinit = afterPreinit;
     }
 
-    public on<TriggerParams, TriggerContextAdditions>(trigger: Trigger<TriggerParams, TriggerContextAdditions, EnvContext>): LogicUnit<TriggerParams, TriggerContextAdditions, EnvContext> {
-        let logicUnit = new LogicUnit<TriggerParams, TriggerContextAdditions, EnvContext>(trigger, this.context, this.logicUnits.length, this.newPreinitAwaiter.bind(this));
+    public on<TriggerParams, TriggerContextAdditions>(trigger: Chain<TriggerParams, TriggerContextAdditions, EnvContext>): ChainLink<TriggerParams, TriggerContextAdditions, EnvContext> {
+        let logicUnit = new ChainLink<TriggerParams, TriggerContextAdditions, EnvContext>(trigger, this.context, this.logicUnits.length, this.newPreinitAwaiter.bind(this));
         this.logicUnits.push(logicUnit);
         return logicUnit;
     }

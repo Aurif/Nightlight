@@ -1,4 +1,4 @@
-import { Trigger } from "../logic"
+import { Chain } from "../logic"
 import { Context, FrozenContext } from "../context"
 import { EnvironmentContext } from "../module"
 
@@ -10,8 +10,8 @@ type ContextAdditions = {
     intervalRepetition: number
 }
 
-export default class IntervalTrigger<EnvContext extends EnvironmentContext> extends Trigger<Params, ContextAdditions, EnvContext> {
-    protected async init(parameters: Params, context: FrozenContext<EnvContext["init"]>, callback: (context: Context<EnvContext["init"] & ContextAdditions>) => void): Promise<void> {
+export default class IntervalTrigger<EnvContext extends EnvironmentContext> extends Chain<Params, ContextAdditions, EnvContext> {
+    protected async run(parameters: Params, context: FrozenContext<EnvContext["init"]>, callback: (context: Context<EnvContext["init"] & ContextAdditions>) => void): Promise<void> {
         let newContext = context.add({intervalTime: parameters.time});
 
         let counter = 0;
