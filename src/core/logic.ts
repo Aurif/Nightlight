@@ -2,14 +2,34 @@ import { Context, FrozenContext, getSubContextName } from "./context";
 import * as logging from "./logging";
 import { EnvironmentContext } from "./module";
 
+// TODO: there has to be a better way to do this than this nightmare
 type ExpandedContext<Context extends EnvironmentContext, ContextAdditions> = Context & {"init": ContextAdditions};
 type ParamLike<Params, Context> = Params | ((context: FrozenContext<Context>) => Params)
 
+class MultiChain<ChainStart extends Chain<StartParams, StartContextAdditions, StartEnvContext>, ChainEnd extends Chain<EndParams, EndContextAdditions, EndEnvContext>, StartParams, StartContextAdditions, StartEnvContext extends EnvironmentContext, EndParams, EndContextAdditions, EndEnvContext extends EnvironmentContext> {
+    public readonly chainStart: ChainStart;
+    public readonly chainEnd: ChainEnd;
+
+    public constructor(chainStart: ChainStart, chainEnd: ChainEnd) {
+        this.chainStart = chainStart;
+        this.chainEnd = chainEnd;
+    }
+
+    public do<ChainParams, ChainContextAdditions>(chain: Chain<ChainParams, ChainContextAdditions, ExpandedContext<EndEnvContext, EndContextAdditions>>): MultiChain<ChainStart, Chain<ChainParams, ChainContextAdditions, ExpandedContext<EndEnvContext, EndContextAdditions>>, StartParams, StartContextAdditions, StartEnvContext, ChainParams, ChainContextAdditions, ExpandedContext<EndEnvContext, EndContextAdditions>> {
+        return new MultiChain(this.chainStart, this.chainEnd.do(chain).chainEnd);
+    }
+    public doAsync<ChainParams, ChainContextAdditions>(...chains: MultiChain<Chain<ChainParams, ChainContextAdditions, ExpandedContext<EndEnvContext, EndContextAdditions>>, Chain<any, any, any>, ChainParams, ChainContextAdditions, ExpandedContext<EndEnvContext, EndContextAdditions>, any, any, any>[]): MultiChain<Chain<StartParams, StartContextAdditions, StartEnvContext>, Chain<EndParams, EndContextAdditions, EndEnvContext>, StartParams, StartContextAdditions, StartEnvContext, EndParams, EndContextAdditions, EndEnvContext> {
+        return new MultiChain(this.chainStart, this.chainEnd.doAsync(...chains).chainEnd);
+    }
+}
+
 // TODO: add typecheck to prevent chains from adding more context parameters than specified
 // TODO: proper error handling for preinit/init of triggers/actions
-export abstract class Chain<Params, ContextAdditions, EnvContext extends EnvironmentContext> {
+export abstract class Chain<Params, ContextAdditions, EnvContext extends EnvironmentContext> implements MultiChain<Chain<Params, ContextAdditions, EnvContext>, Chain<Params, ContextAdditions, EnvContext>, Params, ContextAdditions, EnvContext, Params, ContextAdditions, EnvContext> {
+    public readonly chainStart = this;
+    public readonly chainEnd = this;
     protected parameters: ParamLike<Params, EnvContext["init"]>;
-    private subchains: Chain<any, any, ExpandedContext<EnvContext, ContextAdditions>>[] = [];
+    private subchains: Chain<unknown, unknown, ExpandedContext<EnvContext, ContextAdditions>>[] = [];
     private name?: string;
     private id?: number;
     public constructor(parameters: ParamLike<Params, EnvContext["init"]>) {
@@ -59,12 +79,12 @@ export abstract class Chain<Params, ContextAdditions, EnvContext extends Environ
     protected abstract run(parameters: Params, context: FrozenContext<EnvContext["init"]>, callback: (context: Context<EnvContext["init"] & ContextAdditions>) => void): Promise<void>;
     
 
-    public do<ChainParams, ChainContextAdditions>(chain: Chain<ChainParams, ChainContextAdditions, ExpandedContext<EnvContext, ContextAdditions>>): Chain<ChainParams, ChainContextAdditions, ExpandedContext<EnvContext, ContextAdditions>> {
+    public do<ChainParams, ChainContextAdditions>(chain: Chain<ChainParams, ChainContextAdditions, ExpandedContext<EnvContext, ContextAdditions>>): MultiChain<Chain<Params, ContextAdditions, EnvContext>, Chain<ChainParams, ChainContextAdditions, ExpandedContext<EnvContext, ContextAdditions>>, Params, ContextAdditions, EnvContext, ChainParams, ChainContextAdditions, ExpandedContext<EnvContext, ContextAdditions>>  {
         this.subchains.push(chain);
-        return chain;
+        return new MultiChain(this, chain);
     }
-    public doAsync(...chains: Chain<any, any, ExpandedContext<EnvContext, ContextAdditions>>[]): Chain<Params, ContextAdditions, EnvContext> {
-        chains.forEach(chain => this.do(chain));
+    public doAsync<ChainParams, ChainContextAdditions>(...chains: MultiChain<Chain<ChainParams, ChainContextAdditions, ExpandedContext<EnvContext, ContextAdditions>>, Chain<any, any, any>, ChainParams, ChainContextAdditions, ExpandedContext<EnvContext, ContextAdditions>, any, any, any>[]): MultiChain<Chain<Params, ContextAdditions, EnvContext>, Chain<Params, ContextAdditions, EnvContext>, Params, ContextAdditions, EnvContext, Params, ContextAdditions, EnvContext> {
+        chains.forEach(chain => this.do(chain.chainStart));
         return this;
     }
 

@@ -1,4 +1,3 @@
-// import DelayModifier from "../core/modifiers/delay";
 import DelayModifier from "../core/modifiers/delay";
 import { ScenarioCreator, Scenario } from "../core/scenario";
 import PretendTypingAction from "../discord/actions/pretend_typing";
