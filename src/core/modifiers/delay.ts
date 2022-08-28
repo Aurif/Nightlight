@@ -1,5 +1,5 @@
 import { Context, FrozenContext } from "../../core/context"
-import { Chain } from "../../core/logic"
+import { Modifier } from "../../core/logic"
 import { EnvironmentContext } from "../module";
 
 type Params = {
@@ -8,8 +8,8 @@ type Params = {
 type ContextAdditions = {
 }
 
-export default class DelayModifier<EnvContext extends EnvironmentContext> extends Chain<Params, ContextAdditions, EnvContext> {
-    protected async run(parameters: Params, context: FrozenContext<EnvContext["init"]>, callback: (context: Context<EnvContext["init"] & ContextAdditions>) => void): Promise<void> {
+export default class DelayModifier<EnvContext extends EnvironmentContext> extends Modifier<Params, ContextAdditions, EnvContext> {
+    protected async init(parameters: Params, context: FrozenContext<EnvContext["init"]>, callback: (context: Context<EnvContext["init"] & ContextAdditions>) => void): Promise<void> {
         setTimeout(() => {
             callback(context);
         }, parameters.delay);

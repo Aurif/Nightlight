@@ -14,8 +14,8 @@ export default class TheGateScenario<EnvContext extends DiscordEnvContext> exten
         create.on(new MessageSentTrigger({channelId: parameters.channelId}))
               .do(new SendMessageAction(ctx =>({message: `Received message \`${ctx.receivedMessage.content}\``, channelId: parameters.channelId})))
               .doForked(fork => {
-                fork.do(new PretendTypingAction({channelId: parameters.channelId, duration: 8000}));
-                fork.do(new DelayModifier({delay: 10000}))
+                fork.do(new PretendTypingAction({channelId: parameters.channelId, duration: 2000}));
+                fork.with(new DelayModifier({delay: 3000}))
                     .do(new SendMessageAction(ctx =>({message: `Repeating, received message \`${ctx.receivedMessage.content}\``, channelId: parameters.channelId, replyTo: ctx.sentMessage})))
               })    
     }
