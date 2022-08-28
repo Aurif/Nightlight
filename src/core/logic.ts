@@ -20,6 +20,7 @@ export abstract class Condition<Params, EnvContext extends EnvironmentContext> e
         return this;
     }
 
+    // TODO: it's impossible to differentiate in logs whether the condition failed or took forever to execute, an additional log message when condition check fails would be needed
     protected async init(parameters: Params, context: FrozenContext<EnvContext["init"]>, callback: (context: Context<EnvContext["init"]>) => void): Promise<void> {
         if(await this.check(parameters, context) !== this.isInverted)
             callback(context);

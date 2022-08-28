@@ -30,7 +30,7 @@ export default class PretendTypingAction<EnvContext extends DiscordEnvContext> e
         return new Promise(resolve => {
             setTimeout(() => {
                 clearInterval(typingInterval);
-                resolve(context.add({}));
+                resolve(context.unfreeze());
             }, parameters.duration);
         })
     }

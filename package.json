@@ -10,7 +10,9 @@
   "devDependencies": {},
   "scripts": {
     "prelocal": "npm run build",
-    "local": "node dist/index.js",
+    "local": "node dist/index_test.js",
+    "preprod": "npm run build",
+    "prod": "node dist/index_prod.js",
     "build": "del /S /Q dist && tsc"
   },
   "repository": {

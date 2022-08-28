@@ -34,6 +34,11 @@ class FrozenContextClass<Fields extends {[name: string]: any}> extends ContextCl
         newContext.add(values);
         return newContext;
     }
+
+    // TODO: maybe do this implicitly? FrozenContext extends Context, but then the user may accidentaly return initial context instead of frozen one (not true - typecheck of context additions won't allow for that)
+    public unfreeze(): Context<Fields> {
+        return new ContextClass(this) as Context<Fields>;
+    }
 }
 
 export function getSubContextName(previousName: string, name: string, id?: number) {
