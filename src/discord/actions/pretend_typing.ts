@@ -11,7 +11,7 @@ type ContextAdditions = {
 }
 
 export default class PretendTypingAction<EnvContext extends DiscordEnvContext> extends Action<Params, ContextAdditions, EnvContext> {
-    protected async preinit(context: FrozenContext<{} & EnvContext["preinit"]>): Promise<void> {
+    public async preinit(context: FrozenContext<{} & EnvContext["preinit"]>): Promise<void> {
         context.registerIntent(IntentsBitField.Flags.GuildMessages)
     }
 

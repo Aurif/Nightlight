@@ -11,7 +11,7 @@ type ContextAdditions = {
 }
 
 export default class MessageSentTrigger<EnvContext extends DiscordEnvContext> extends Trigger<Params, ContextAdditions, EnvContext> {
-    protected async preinit(context: FrozenContext<{} & EnvContext["preinit"]>): Promise<void> {
+    public async preinit(context: FrozenContext<{} & EnvContext["preinit"]>): Promise<void> {
         context.registerIntent(IntentsBitField.Flags.GuildMessages)
         context.registerIntent(IntentsBitField.Flags.MessageContent)
     }

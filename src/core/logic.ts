@@ -1,17 +1,10 @@
 import { Context, FrozenContext } from "./context";
 import { Chain } from "./chaining";
-import * as logging from "./logging";
 import { EnvironmentContext } from "./module";
 
 export abstract class Trigger<Params, ContextAdditions, EnvContext extends EnvironmentContext> extends Chain<Params, ContextAdditions, EnvContext> {
-    public build(context: FrozenContext<EnvContext["init"]>): void {
-        logging.logInit(`${this.name}...`, 'INIT');
-        this.execute(context).then(() => {
-            logging.logInit(`${this.name} OK`);
-        }).catch(error => {
-            logging.logInit(`${this.name} ERROR`);
-            throw error;
-        })
+    public async build(context: FrozenContext<EnvContext["init"]>): Promise<void> {
+        return await this.execute(context)
     }
 }
 export abstract class Action<Params, ContextAdditions, EnvContext extends EnvironmentContext> extends Chain<Params, ContextAdditions, EnvContext> {

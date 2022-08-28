@@ -1,6 +1,7 @@
 import { FrozenContext } from "./context";
 import { EnvironmentContext } from "./module";
 import { Trigger } from "./logic";
+import { InitialChainLink } from "./chaining";
 
 // TODO: scenarios don't have their own init/preinit code, so maybe skip this level of logging? Or change how module logging works? But logging module finished init requires quite a bit of a rewrite
 export abstract class Scenario<Params, EnvContext extends EnvironmentContext> {
@@ -24,7 +25,7 @@ export abstract class Scenario<Params, EnvContext extends EnvironmentContext> {
 
 type ScenarioInitializer<EnvContext extends EnvironmentContext> = (context: FrozenContext<EnvContext["init"]>) => void;
 export class ScenarioCreator<EnvContext extends EnvironmentContext> {
-    private triggers: Trigger<any, any, EnvContext>[] = [];
+    private startLinks: InitialChainLink<any, EnvContext>[] = [];
     private afterPreinit: ((initializers: ScenarioInitializer<EnvContext>[]) => void) | null;
     private preinitsAwaiting = 0;
     constructor(context: FrozenContext<{} & EnvContext["preinit"]>, afterPreinit: (initializers: ScenarioInitializer<EnvContext>[]) => void) {
@@ -34,13 +35,14 @@ export class ScenarioCreator<EnvContext extends EnvironmentContext> {
           });
     }
 
-    public on<TriggerParams, TriggerContextAdditions>(trigger: Trigger<TriggerParams, TriggerContextAdditions, EnvContext>): Trigger<TriggerParams, TriggerContextAdditions, EnvContext> {
-        this.triggers.push(trigger);
-        return trigger;
+    public on<TriggerParams, TriggerContextAdditions>(trigger: Trigger<TriggerParams, TriggerContextAdditions, EnvContext>): InitialChainLink<TriggerContextAdditions, EnvContext> {
+        let link = new InitialChainLink(trigger);
+        this.startLinks.push(link);
+        return link;
     }
 
     private preinit(context: FrozenContext<{} & EnvContext["preinit"]>) {
-        this.triggers.forEach((chain, id) => chain.prebuild(context, this.newPreinitAwaiter.bind(this), id));
+        this.startLinks.forEach((chain, id) => chain.prebuild(context, this.newPreinitAwaiter.bind(this), id));
     }
     private newPreinitAwaiter(promise: Promise<any>) {
         if(this.afterPreinit === null) 
@@ -53,7 +55,7 @@ export class ScenarioCreator<EnvContext extends EnvironmentContext> {
         })
     }
     private afterPreinitAwaiter(): void {
-        this.afterPreinit!(this.triggers.map(unit => unit.build.bind(unit)));
+        this.afterPreinit!(this.startLinks.map(unit => unit.build.bind(unit)));
         this.afterPreinit = null;
     }
 }

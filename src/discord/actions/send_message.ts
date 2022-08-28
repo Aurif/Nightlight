@@ -13,7 +13,7 @@ type ContextAdditions = {
 }
 
 export default class SendMessageAction<EnvContext extends DiscordEnvContext> extends Action<Params, ContextAdditions, EnvContext> {
-    protected async preinit(context: FrozenContext<{} & EnvContext["preinit"]>): Promise<void> {
+    public async preinit(context: FrozenContext<{} & EnvContext["preinit"]>): Promise<void> {
         context.registerIntent(IntentsBitField.Flags.GuildMessages)
     }
 
