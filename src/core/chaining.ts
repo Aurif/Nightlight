@@ -93,6 +93,9 @@ class ChainLink<ContextAdditions, EnvContext extends EnvironmentContext> {
         registeringFunc(this);
         return this;
     }
+    public ifNot(condition: Condition<any, ExpandedContext<EnvContext, ContextAdditions>>): ChainLink<{}, ExpandedContext<EnvContext, ContextAdditions>> {
+        return this.addChain(condition.not());
+    }
 }
 export class InitialChainLink<ContextAdditions, EnvContext extends EnvironmentContext> extends ChainLink<ContextAdditions, EnvContext> {
     public constructor(chain: Trigger<any, ContextAdditions, EnvContext>) {

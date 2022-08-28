@@ -17,19 +17,16 @@ export type DiscordEnvContext = {
 }
 
 export class DiscordGuildModule extends Module<Params, DiscordEnvContext> {
-    private intents: GatewayIntentBits[] = [];
+    private intents: IntentsBitField = new IntentsBitField();
     protected async preinit(context: GlobalContext, _parameters: Params): Promise<Context<DiscordEnvContext["preinit"]>> {
         return context.add({"registerIntent": this.registerIntent.bind(this)});
     };
     private registerIntent(intent: GatewayIntentBits): void {
-        this.intents.push(intent);
+        this.intents.add(intent);
     }
 
     protected async init(context: Context<GlobalContext>, parameters: Params): Promise<Context<DiscordEnvContext['init']>> {
-        const myIntents = new IntentsBitField();
-        myIntents.add(...this.intents);
-
-        const client = new Client({ intents: myIntents });
+        const client = new Client({ intents: this.intents });
         client.login(Secrets.get(parameters.tokenKey));
 
         await new Promise((resolve) => {client.on('ready', resolve)});
