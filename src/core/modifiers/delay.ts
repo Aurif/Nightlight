@@ -1,6 +1,5 @@
-import { Context, FrozenContext, GlobalContext } from "../../core/context"
 import { Modifier } from "../../core/logic"
-import { EnvironmentContext } from "../module";
+import { EnvironmentContext, InitContext, InitOutContext } from "../context";
 
 type Params = {
     delay: number
@@ -9,9 +8,9 @@ type ContextAdditions = {
 }
 
 export default class DelayModifier<EnvContext extends EnvironmentContext> extends Modifier<Params, ContextAdditions, EnvContext> {
-    protected async init(parameters: Params, context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>, callback: (context: Context<GlobalContext["init"] & EnvContext["init"] & ContextAdditions>) => void): Promise<void> {
+    protected async init(parameters: Params, context: InitContext<EnvContext>, callback: (context: InitOutContext<EnvContext, ContextAdditions>) => void): Promise<void> {
         setTimeout(() => {
-            callback(context);
+            callback(context.unfreeze());
         }, parameters.delay);
     }
 }

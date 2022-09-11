@@ -1,11 +1,7 @@
-import { Context, GlobalContext, getGlobalContext, FrozenContext, getSubContextName } from "./context";
+import { getGlobalContext, getSubContextName, EnvironmentContext, PreinitContext, InitContext, PreinitOutContext, InitOutContext } from "./context";
 import { Scenario } from "./scenario";
 import * as logging from "./logging";
 
-export type EnvironmentContext = {
-    preinit?: {},
-    init: {}
-}
 export default abstract class Module<Params, EnvContext extends EnvironmentContext> {
     private static moduleCount = 0;
     public readonly name: string = this.constructor.name;
@@ -23,14 +19,14 @@ export default abstract class Module<Params, EnvContext extends EnvironmentConte
         logging.logInit(`${this.name}...`, 'PREINIT');
         let preinitContext = await this.preinit(globalContext["preinit"], parameters)
         logging.logInit(`${this.name} OK`, 'PREINIT');
-        await this.preinitScenarios(preinitContext.freeze(this.constructor.name, this.id));
+        await this.preinitScenarios(preinitContext.freeze(this.constructor.name, this.id) as PreinitContext<EnvContext>);
 
         logging.logInit(`${this.name}...`, 'INIT');
         let initContext = await this.init(globalContext["init"], parameters);
         logging.logInit(`${this.name} OK`, 'INIT');
-        this.initScenarios(initContext.freeze(this.constructor.name, this.id));
+        this.initScenarios(initContext.freeze(this.constructor.name, this.id) as InitContext<EnvContext>);
     }
-    private preinitScenarios(preinitContext: FrozenContext<GlobalContext["preinit"] &  EnvContext["preinit"]>): Promise<void[]> {
+    private preinitScenarios(preinitContext: PreinitContext<EnvContext>): Promise<void[]> {
         this.lockNewScenarios = true;
         let promises: Promise<void>[] = [];
         this.scenarios.forEach((scenario, id) => {
@@ -44,7 +40,7 @@ export default abstract class Module<Params, EnvContext extends EnvironmentConte
         })
         return Promise.all(promises)
     }
-    private initScenarios(initContext: FrozenContext<GlobalContext["init"] & EnvContext["init"]>): void {
+    private initScenarios(initContext: InitContext<EnvContext>): void {
         this.scenarios.forEach((scenario, id) => {
             let scenarioContext = initContext.freeze(scenario.constructor.name, id);
             logging.logInit(`${scenarioContext._name}...`, 'INIT');
@@ -55,10 +51,10 @@ export default abstract class Module<Params, EnvContext extends EnvironmentConte
 
     // TODO: retry preinit/init on failure
     // TODO: proper error handling for preinit/init
-    protected async preinit(context: Context<GlobalContext["preinit"]>, _parameters: Params): Promise<Context<GlobalContext["preinit"] & EnvContext["preinit"]>> {
-        return context as Context<GlobalContext["preinit"] & EnvContext["preinit"]>;
+    protected async preinit(context: PreinitContext<{}>, _parameters: Params): Promise<PreinitOutContext<{}, EnvContext["preinit"]>> {
+        return context as PreinitOutContext<{}, EnvContext["preinit"]>;
     };
-    protected abstract init(context: GlobalContext["init"], parameters: Params): Promise<Context<GlobalContext["init"] & EnvContext["init"]>>;
+    protected abstract init(context: InitContext<{}>, parameters: Params): Promise<InitOutContext<{}, EnvContext["init"]>>;
 
     public use(scenario: Scenario<any, EnvContext>): Module<Params, EnvContext> {
         if(this.lockNewScenarios)

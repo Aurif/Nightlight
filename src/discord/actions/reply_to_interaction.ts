@@ -1,5 +1,5 @@
 import { CommandInteraction, InteractionReplyOptions } from "discord.js";
-import { Context, FrozenContext, GlobalContext } from "../../core/context";
+import { InitContext, InitOutContext } from "../../core/context";
 import { Action } from "../../core/logic";
 import { DiscordEnvContext } from "../module";
 
@@ -12,7 +12,7 @@ type ContextAdditions = {
 }
 
 export default class ReplyToInteractionAction<EnvContext extends DiscordEnvContext> extends Action<Params, ContextAdditions, EnvContext> {
-    protected async run(parameters: Params, context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>): Promise<Context<GlobalContext["init"] & EnvContext["init"] & ContextAdditions>> {
+    protected async run(parameters: Params, context: InitContext<EnvContext>): Promise<InitOutContext<EnvContext, ContextAdditions>> {
         await parameters.replyTo.reply(this.prepareMessagePayload(parameters));
         return context.unfreeze();
     }

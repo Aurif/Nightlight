@@ -1,5 +1,16 @@
 import { CacheManager } from "./cache";
 
+export type EnvironmentContext = {
+    preinit?: {},
+    init: {}
+}
+type ContextField<Context extends EnvironmentContext | {}, Field extends keyof EnvironmentContext> = Context extends EnvironmentContext ? Context[Field] : {};
+
+export type InitContext<EnvContext extends EnvironmentContext | {}> = FrozenContext<GlobalContext["init"] & ContextField<EnvContext, "init">>
+export type PreinitContext<EnvContext extends EnvironmentContext | {}> = FrozenContext<GlobalContext["preinit"] & ContextField<EnvContext, "preinit">>
+export type InitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = Context<GlobalContext["init"] & ContextField<EnvContext, "init"> & ContextAdditions>
+export type PreinitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = Context<GlobalContext["preinit"] & ContextField<EnvContext, "preinit"> & ContextAdditions>
+
 export type Context<Fields extends {[name: string]: any}> = ContextClass<Fields> & {readonly [P in keyof Fields]: P extends "isFrozen" ? never : Fields[P]};
 class ContextClass<Fields extends {[name: string]: any}> {
     public readonly _name : string = "global";
@@ -47,15 +58,15 @@ export function getSubContextName(previousName: string, name: string, id?: numbe
 
 export type GlobalContext = {
     preinit: {cache: CacheManager},
-    init: {test: 3}
+    init: {test: number}
 }
 type BuiltGlobalContext = {
-    preinit: Context<GlobalContext["preinit"]>,
-    init: Context<GlobalContext["init"]>
+    preinit: FrozenContext<GlobalContext["preinit"]>,
+    init: FrozenContext<GlobalContext["init"]>
 }
 export function getGlobalContext(moduleName: string): BuiltGlobalContext {
     return {
-        preinit: new ContextClass<{}>().add({cache: new CacheManager(moduleName)}),
-        init: new ContextClass<{}>().add({test: 3})
+        preinit: new ContextClass<{}>().add({cache: new CacheManager(moduleName)}).freeze("global"),
+        init: new ContextClass<{}>().add({test: 3}).freeze("global")
     }
 }

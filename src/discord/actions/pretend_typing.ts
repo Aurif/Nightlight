@@ -1,5 +1,5 @@
 import { IntentsBitField } from "discord.js";
-import { Context, FrozenContext, GlobalContext } from "../../core/context"
+import { PreinitContext, InitContext, InitOutContext } from "../../core/context";
 import { Action } from "../../core/logic"
 import { DiscordEnvContext } from "../module";
 
@@ -11,11 +11,11 @@ type ContextAdditions = {
 }
 
 export default class PretendTypingAction<EnvContext extends DiscordEnvContext> extends Action<Params, ContextAdditions, EnvContext> {
-    public async preinit(context: FrozenContext<GlobalContext["preinit"] & EnvContext["preinit"]>): Promise<void> {
+    public async preinit(context: PreinitContext<EnvContext>): Promise<void> {
         context.registerIntent(IntentsBitField.Flags.GuildMessages)
     }
 
-    protected async run(parameters: Params, context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>): Promise<Context<GlobalContext["init"] & EnvContext["init"] & ContextAdditions>> {
+    protected async run(parameters: Params, context: InitContext<EnvContext>): Promise<InitOutContext<EnvContext, ContextAdditions>> {
         let channel = await context.discordGuild.channels.fetch(parameters.channelId);
         if(!channel)
             throw new Error("Channel not found");

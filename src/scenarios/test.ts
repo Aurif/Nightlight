@@ -1,5 +1,5 @@
 import ConsoleLogAction from "../core/actions/console_log";
-import { EnvironmentContext } from "../core/module";
+import { EnvironmentContext } from "../core/context";
 import { ScenarioCreator, Scenario } from "../core/scenario";
 import IntervalTrigger from "../core/triggers/interval";
 

@@ -1,5 +1,5 @@
 import { IntentsBitField, Message } from "discord.js";
-import { Context, FrozenContext, GlobalContext } from "../../core/context";
+import { PreinitContext, InitContext, InitOutContext } from "../../core/context";
 import { Trigger } from "../../core/logic";
 import { DiscordEnvContext } from "../module";
 
@@ -11,12 +11,12 @@ type ContextAdditions = {
 }
 
 export default class MessageSentTrigger<EnvContext extends DiscordEnvContext> extends Trigger<Params, ContextAdditions, EnvContext> {
-    public async preinit(context: FrozenContext<GlobalContext["preinit"] & EnvContext["preinit"]>): Promise<void> {
+    public async preinit(context: PreinitContext<EnvContext>): Promise<void> {
         context.registerIntent(IntentsBitField.Flags.GuildMessages)
         context.registerIntent(IntentsBitField.Flags.MessageContent)
     }
 
-    protected async init(parameters: Params, context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>, callback: (context: Context<GlobalContext["init"] & EnvContext["init"] & ContextAdditions>) => void): Promise<void> {
+    protected async init(parameters: Params, context: InitContext<EnvContext>, callback: (context: InitOutContext<EnvContext, ContextAdditions>) => void): Promise<void> {
         let channel = await context.discordGuild.channels.fetch(parameters.channelId);
         if(!channel)
             throw new Error("Channel not found");

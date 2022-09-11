@@ -1,4 +1,4 @@
-import { Context, FrozenContext, GlobalContext } from "../../core/context"
+import { InitContext, InitOutContext, PreinitContext } from "../../core/context";
 import { Modifier } from "../../core/logic"
 import { DiscordEnvContext } from "../module";
 
@@ -9,11 +9,11 @@ type ContextAdditions = {
 }
 
 export default class ChannelTargeterModifier<EnvContext extends DiscordEnvContext> extends Modifier<Params, ContextAdditions, EnvContext> {
-    public async preinit(context: FrozenContext<GlobalContext["preinit"] & EnvContext["preinit"]>): Promise<void> {
+    public async preinit(_context: PreinitContext<EnvContext>): Promise<void> {
         
     }
     
-    protected async init(parameters: Params, context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>, callback: (context: Context<GlobalContext["init"] & EnvContext["init"] & ContextAdditions>) => void): Promise<void> {
+    protected async init(parameters: Params, context: InitContext<EnvContext>, callback: (context: InitOutContext<EnvContext, ContextAdditions>) => void): Promise<void> {
         setTimeout(() => {
             callback(context.unfreeze());
         }, parameters.delay);
