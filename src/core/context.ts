@@ -11,7 +11,7 @@ export type PreinitContext<EnvContext extends EnvironmentContext | {}> = FrozenC
 export type InitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = Context<GlobalContext["init"] & ContextField<EnvContext, "init"> & ContextAdditions>
 export type PreinitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = Context<GlobalContext["preinit"] & ContextField<EnvContext, "preinit"> & ContextAdditions>
 
-export type Context<Fields extends {[name: string]: any}> = ContextClass<Fields> & {readonly [P in keyof Fields]: P extends "isFrozen" ? never : Fields[P]};
+type Context<Fields extends {[name: string]: any}> = ContextClass<Fields> & {readonly [P in keyof Fields]: P extends "isFrozen" ? never : Fields[P]};
 class ContextClass<Fields extends {[name: string]: any}> {
     public readonly _name : string = "global";
     public constructor(sourceContext?: ContextClass<Fields>, name?: string) {
@@ -37,7 +37,7 @@ class ContextClass<Fields extends {[name: string]: any}> {
     }
 }
 
-export type FrozenContext<Fields extends {[name: string]: any}> = FrozenContextClass<Fields> & {readonly [P in keyof Fields]: Fields[P]};
+type FrozenContext<Fields extends {[name: string]: any}> = FrozenContextClass<Fields> & {readonly [P in keyof Fields]: Fields[P]};
 class FrozenContextClass<Fields extends {[name: string]: any}> extends ContextClass<Fields> {
     public readonly isFrozen = true;
     public add<ValuesType extends {[name: string]: any}>(values: ValuesType): Context<Fields & ValuesType> {
@@ -56,7 +56,7 @@ export function getSubContextName(previousName: string, name: string, id?: numbe
     return (previousName == "global"?"":previousName+".")+(id==undefined?"":`${(""+id).padStart(2, "0")}_`)+name;
 }
 
-export type GlobalContext = {
+type GlobalContext = {
     preinit: {cache: CacheManager},
     init: {test: number}
 }
