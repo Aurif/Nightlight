@@ -1,38 +1,38 @@
-import { Context, FrozenContext, getSubContextName } from "./context";
+import { Context, FrozenContext, getSubContextName, GlobalContext } from "./context";
 import * as logging from "./logging";
 import { Action, Condition, Modifier, Trigger } from "./logic";
 import { EnvironmentContext } from "./module";
 
-type ExpandedContext<Context extends EnvironmentContext, ContextAdditions> = Context & { "init": ContextAdditions; };
-type ParamLike<Params, Context> = Params | ((context: FrozenContext<Context>) => Params);
+type ExpandedContext<Context extends EnvironmentContext, ContextAdditions> = { "init": {} & ContextAdditions & Context["init"]; "preinit": {} & Context["preinit"] };
+type ParamLike<Params, Context extends {[name: string]: any}> = Params | ((context: FrozenContext<Context>) => Params);
 // TODO: add typecheck to prevent chains from adding more context parameters than specified
 // TODO: proper error handling for preinit/init of triggers/actions
 
 export abstract class Chain<Params, ContextAdditions, EnvContext extends EnvironmentContext> {
-    protected parameters: ParamLike<Params, EnvContext["init"]>;
-    private executionCallback?: (context: Context<EnvContext["init"] & ContextAdditions>) => void;
-    public constructor(parameters: ParamLike<Params, EnvContext["init"]>) {
+    protected parameters: ParamLike<Params, GlobalContext["init"] & EnvContext["init"]>;
+    private executionCallback?: (context: Context<GlobalContext["init"] & EnvContext["init"] & ContextAdditions>) => void;
+    public constructor(parameters: ParamLike<Params, GlobalContext["init"] & EnvContext["init"]>) {
         this.parameters = parameters;
     }
-    public bind(callback: (context: Context<EnvContext["init"] & ContextAdditions>) => void): void {
+    public bind(callback: (context: Context<GlobalContext["init"] & EnvContext["init"] & ContextAdditions>) => void): void {
         this.executionCallback = callback;
     }
 
-    public async preinit(_context: FrozenContext<{} & EnvContext["preinit"]>): Promise<void> {
+    public async preinit(_context: FrozenContext<GlobalContext["preinit"] & EnvContext["preinit"]>): Promise<void> {
         return;
     }
 
-    public async execute(context: FrozenContext<EnvContext["init"]>): Promise<void> {
+    public async execute(context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>): Promise<void> {
         if (!this.executionCallback)
             throw new Error(`Tried running unbound chain ${this.constructor.name}`);
 
         let parameters = this.parameters;
         if (typeof parameters === "function")
-            parameters = (this.parameters as ((context: FrozenContext<EnvContext["init"]>) => Params))(context);
+            parameters = (this.parameters as ((context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>) => Params))(context);
 
         this.init(parameters, context, this.executionCallback.bind(this));
     }
-    protected abstract init(parameters: Params, context: FrozenContext<EnvContext["init"]>, callback: (context: Context<EnvContext["init"] & ContextAdditions>) => void): Promise<void>;
+    protected abstract init(parameters: Params, context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>, callback: (context: Context<GlobalContext["init"] & EnvContext["init"] & ContextAdditions>) => void): Promise<void>;
 }
 
 class ChainLink<ContextAdditions, EnvContext extends EnvironmentContext> {
@@ -45,7 +45,7 @@ class ChainLink<ContextAdditions, EnvContext extends EnvironmentContext> {
         chain.bind(this.executionCallback.bind(this));
     }
 
-    public async prebuild(context: FrozenContext<{} & EnvContext["preinit"]>, registerPreinitAwaiter: (promise: Promise<any>) => void, id: number): Promise<void> {
+    public async prebuild(context: FrozenContext<GlobalContext["preinit"] & EnvContext["preinit"]>, registerPreinitAwaiter: (promise: Promise<any>) => void, id: number): Promise<void> {
         this.id = id;
         this.name = getSubContextName(context._name, this.chain.constructor.name, id);
 
@@ -58,10 +58,10 @@ class ChainLink<ContextAdditions, EnvContext extends EnvironmentContext> {
         await promise;
         logging.logInit(`${this.name} OK`, 'PREINIT');
     }
-    private execute(context: FrozenContext<EnvContext["init"]>): void {
+    private execute(context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>): void {
         this.chain.execute(context);
     }
-    private executionCallback(context: Context<EnvContext["init"] & ContextAdditions>): void {
+    private executionCallback(context: Context<GlobalContext["init"] & EnvContext["init"] & ContextAdditions>): void {
         logging.logRun(`${this.name} >>`);
         this.subchains.forEach((sublink) => {
             logging.logRun(`${sublink.name} <<`);
@@ -102,7 +102,7 @@ export class InitialChainLink<ContextAdditions, EnvContext extends EnvironmentCo
         super(chain);
     }
     
-    public build(context: FrozenContext<EnvContext["init"]>) {
+    public build(context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>) {
         logging.logInit(`${this.name}...`, 'INIT');
         (this.chain as Trigger<unknown, ContextAdditions, EnvContext>).build(context).then(() => {
             logging.logInit(`${this.name} OK`);

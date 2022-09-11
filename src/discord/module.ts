@@ -12,20 +12,21 @@ export type DiscordEnvContext = {
         registerIntent: (intent: GatewayIntentBits) => void
     },
     init: {
-        discordGuild: Guild
+        discordGuild: Guild,
+        discordClient: Client
     }
 }
 
 export class DiscordGuildModule extends Module<Params, DiscordEnvContext> {
     private intents: IntentsBitField = new IntentsBitField();
-    protected async preinit(context: GlobalContext, _parameters: Params): Promise<Context<DiscordEnvContext["preinit"]>> {
+    protected async preinit(context: Context<GlobalContext["preinit"]>, _parameters: Params): Promise<Context<GlobalContext["preinit"] & DiscordEnvContext["preinit"]>> {
         return context.add({"registerIntent": this.registerIntent.bind(this)});
     };
     private registerIntent(intent: GatewayIntentBits): void {
         this.intents.add(intent);
     }
 
-    protected async init(context: Context<GlobalContext>, parameters: Params): Promise<Context<DiscordEnvContext['init']>> {
+    protected async init(context: Context<GlobalContext["init"]>, parameters: Params): Promise<Context<GlobalContext["init"] & DiscordEnvContext['init']>> {
         const client = new Client({ intents: this.intents });
         client.login(Secrets.get(parameters.tokenKey));
 
@@ -34,9 +35,11 @@ export class DiscordGuildModule extends Module<Params, DiscordEnvContext> {
         const guild = client.guilds.resolve(parameters.guildId)
         if(guild == undefined)
             throw new Error("Discord guild not found");
+        guild.commands.set([])
 
         return context.add({
-            discordGuild: guild
+            discordGuild: guild,
+            discordClient: client
         })
     }
 }

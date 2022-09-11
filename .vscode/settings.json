@@ -2,5 +2,9 @@
     "search.exclude": {
         "**/dist": true
     },
-    "todo-tree.tree.scanMode": "workspace only"
+    "todo-tree.tree.scanMode": "workspace only",
+    "npm.scriptExplorerExclude": [
+        "build",
+        "pre.+"
+    ]
 }

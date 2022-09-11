@@ -1,5 +1,5 @@
 import { GuildMember, IntentsBitField } from "discord.js";
-import { FrozenContext } from "../../core/context"
+import { FrozenContext, GlobalContext } from "../../core/context"
 import { Condition } from "../../core/logic"
 import { DiscordEnvContext } from "../module";
 
@@ -9,11 +9,11 @@ type Params = {
 }
 
 export default class HasRoleCondition<EnvContext extends DiscordEnvContext> extends Condition<Params, EnvContext> {
-    public async preinit(context: FrozenContext<{} & EnvContext["preinit"]>): Promise<void> {
+    public async preinit(context: FrozenContext<GlobalContext["preinit"] & EnvContext["preinit"]>): Promise<void> {
         context.registerIntent(IntentsBitField.Flags.Guilds)
     }
     
-    protected async check(parameters: Params, _context: FrozenContext<EnvContext["init"]>): Promise<boolean> {
+    protected async check(parameters: Params, _context: FrozenContext<GlobalContext["init"] & EnvContext["init"]>): Promise<boolean> {
         if(!parameters.user)
             return false;
         return parameters.user.roles.resolve(parameters.roleId) != null

@@ -1,4 +1,4 @@
-import * as logging from "./logging";
+import { CacheManager } from "./cache";
 
 export type Context<Fields extends {[name: string]: any}> = ContextClass<Fields> & {readonly [P in keyof Fields]: P extends "isFrozen" ? never : Fields[P]};
 class ContextClass<Fields extends {[name: string]: any}> {
@@ -45,7 +45,17 @@ export function getSubContextName(previousName: string, name: string, id?: numbe
     return (previousName == "global"?"":previousName+".")+(id==undefined?"":`${(""+id).padStart(2, "0")}_`)+name;
 }
 
-// TODO: change to proper logging type
-const globalContext = (new ContextClass<{}>()).add({"log": logging.logInit})
-export type GlobalContext = typeof globalContext
-export function getGlobalContext(): GlobalContext {return globalContext}
+export type GlobalContext = {
+    preinit: {cache: CacheManager},
+    init: {test: 3}
+}
+type BuiltGlobalContext = {
+    preinit: Context<GlobalContext["preinit"]>,
+    init: Context<GlobalContext["init"]>
+}
+export function getGlobalContext(moduleName: string): BuiltGlobalContext {
+    return {
+        preinit: new ContextClass<{}>().add({cache: new CacheManager(moduleName)}),
+        init: new ContextClass<{}>().add({test: 3})
+    }
+}
