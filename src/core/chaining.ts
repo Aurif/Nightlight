@@ -1,10 +1,9 @@
-import { EnvironmentContext, getSubContextName, InitContext, InitOutContext, PreinitContext } from "./context";
+import { EnvironmentContext, getSubContextName, InitContext, InitOutContext, LockedInitContext, PreinitContext } from "./context";
 import * as logging from "./logging";
 import { Action, Condition, Modifier, Trigger } from "./logic";
 
 type ExpandedContext<Context extends EnvironmentContext, ContextAdditions> = { "init": {} & ContextAdditions & Context["init"]; "preinit": {} & Context["preinit"] };
-// TODO: ParamLike should use locked context, preventing usage of add, freeze and unfreeze
-type ParamLike<Params, EnvContext extends EnvironmentContext> = Params | ((context: InitContext<EnvContext>) => Params);
+type ParamLike<Params, EnvContext extends EnvironmentContext> = Params | ((context: LockedInitContext<EnvContext>) => Params);
 // TODO: add typecheck to prevent chains from adding more context parameters than specified
 // TODO: proper error handling for preinit/init of triggers/actions
 

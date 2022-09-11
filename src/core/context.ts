@@ -7,8 +7,9 @@ export type EnvironmentContext = {
 type ContextField<Context extends EnvironmentContext | {}, Field extends keyof EnvironmentContext> = Context extends EnvironmentContext ? Context[Field] : {};
 
 export type InitContext<EnvContext extends EnvironmentContext | {}> = FrozenContext<GlobalContext["init"] & ContextField<EnvContext, "init">>
-export type PreinitContext<EnvContext extends EnvironmentContext | {}> = FrozenContext<GlobalContext["preinit"] & ContextField<EnvContext, "preinit">>
 export type InitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = Context<GlobalContext["init"] & ContextField<EnvContext, "init"> & ContextAdditions>
+export type LockedInitContext<EnvContext extends EnvironmentContext | {}> = LockedContext<GlobalContext["init"] & ContextField<EnvContext, "init">>
+export type PreinitContext<EnvContext extends EnvironmentContext | {}> = FrozenContext<GlobalContext["preinit"] & ContextField<EnvContext, "preinit">>
 export type PreinitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = Context<GlobalContext["preinit"] & ContextField<EnvContext, "preinit"> & ContextAdditions>
 
 type Context<Fields extends {[name: string]: any}> = ContextClass<Fields> & {readonly [P in keyof Fields]: P extends "isFrozen" ? never : Fields[P]};
@@ -51,6 +52,7 @@ class FrozenContextClass<Fields extends {[name: string]: any}> extends ContextCl
         return new ContextClass(this) as Context<Fields>;
     }
 }
+type LockedContext<Fields extends {[name: string]: any}> = {readonly [P in keyof Fields]: Fields[P]};
 
 export function getSubContextName(previousName: string, name: string, id?: number) {
     return (previousName == "global"?"":previousName+".")+(id==undefined?"":`${(""+id).padStart(2, "0")}_`)+name;
@@ -58,7 +60,7 @@ export function getSubContextName(previousName: string, name: string, id?: numbe
 
 type GlobalContext = {
     preinit: {cache: CacheManager},
-    init: {test: number}
+    init: {}
 }
 type BuiltGlobalContext = {
     preinit: FrozenContext<GlobalContext["preinit"]>,
