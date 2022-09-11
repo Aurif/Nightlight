@@ -58,3 +58,5 @@ export class ScenarioCreator<EnvContext extends EnvironmentContext> {
         this.afterPreinit = null;
     }
 }
+
+export type EmptyParams = {[n: string]: never};

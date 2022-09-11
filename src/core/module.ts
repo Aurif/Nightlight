@@ -8,7 +8,6 @@ export default abstract class Module<Params, EnvContext extends EnvironmentConte
     private readonly id: number = Module.moduleCount++;
     private lockNewScenarios = false;
     private scenarios: Scenario<any, EnvContext>[] = [];
-    // TODO: dissallow for passing additional parameters
     public constructor(parameters: Params) {
         this.name = getSubContextName("global", this.constructor.name, this.id);
         this.build(parameters);

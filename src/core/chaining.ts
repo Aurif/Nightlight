@@ -4,6 +4,7 @@ import { Action, Condition, Modifier, Trigger } from "./logic";
 
 type ExpandedContext<Context extends EnvironmentContext, ContextAdditions> = { "init": {} & ContextAdditions & Context["init"]; "preinit": {} & Context["preinit"] };
 type ParamLike<Params, EnvContext extends EnvironmentContext> = Params | ((context: LockedInitContext<EnvContext>) => Params);
+// TODO: dissallow for passing additional parameters in ParamLike - smart people on the internet say this cannot be done, probably would require a rework on passing parameters (for example, instead of a function returning object, have an object with functions inside of it)
 // TODO: add typecheck to prevent chains from adding more context parameters than specified
 // TODO: proper error handling for preinit/init of triggers/actions
 
