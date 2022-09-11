@@ -14,7 +14,7 @@ type ContextAdditions = {
 export default class ReplyToInteractionAction<EnvContext extends DiscordEnvContext> extends Action<Params, ContextAdditions, EnvContext> {
     protected async run(parameters: Params, context: InitContext<EnvContext>): Promise<InitOutContext<EnvContext, ContextAdditions>> {
         await parameters.replyTo.reply(this.prepareMessagePayload(parameters));
-        return context.unfreeze();
+        return context;
     }
 
     private prepareMessagePayload(parameters: Params): InteractionReplyOptions {

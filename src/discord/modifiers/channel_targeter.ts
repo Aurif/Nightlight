@@ -15,7 +15,7 @@ export default class ChannelTargeterModifier<EnvContext extends DiscordEnvContex
     
     protected async init(parameters: Params, context: InitContext<EnvContext>, callback: (context: InitOutContext<EnvContext, ContextAdditions>) => void): Promise<void> {
         setTimeout(() => {
-            callback(context.unfreeze());
+            callback(context);
         }, parameters.delay);
     }
 }

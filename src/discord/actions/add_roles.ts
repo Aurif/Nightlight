@@ -15,6 +15,6 @@ export default class AddRolesAction<EnvContext extends DiscordEnvContext> extend
     protected async run(parameters: Params, context: InitContext<EnvContext>): Promise<InitOutContext<EnvContext, ContextAdditions>> {
         if(parameters.user)
             await parameters.user.roles.add(parameters.roleIds, parameters.reason)
-        return context.unfreeze();
+        return context;
     }
 }

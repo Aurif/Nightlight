@@ -7,10 +7,10 @@ export type EnvironmentContext = {
 type ContextField<Context extends EnvironmentContext | {}, Field extends keyof EnvironmentContext> = Context extends EnvironmentContext ? Context[Field] : {};
 
 export type InitContext<EnvContext extends EnvironmentContext | {}> = FrozenContext<GlobalContext["init"] & ContextField<EnvContext, "init">>
-export type InitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = Context<GlobalContext["init"] & ContextField<EnvContext, "init"> & ContextAdditions>
+export type InitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = FrozenContext<GlobalContext["init"] & ContextField<EnvContext, "init"> & ContextAdditions> | Context<GlobalContext["init"] & ContextField<EnvContext, "init"> & ContextAdditions>
 export type LockedInitContext<EnvContext extends EnvironmentContext | {}> = LockedContext<GlobalContext["init"] & ContextField<EnvContext, "init">>
 export type PreinitContext<EnvContext extends EnvironmentContext | {}> = FrozenContext<GlobalContext["preinit"] & ContextField<EnvContext, "preinit">>
-export type PreinitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = Context<GlobalContext["preinit"] & ContextField<EnvContext, "preinit"> & ContextAdditions>
+export type PreinitOutContext<EnvContext extends EnvironmentContext | {}, ContextAdditions> = FrozenContext<GlobalContext["preinit"] & ContextField<EnvContext, "preinit"> & ContextAdditions> | Context<GlobalContext["preinit"] & ContextField<EnvContext, "preinit"> & ContextAdditions>
 
 type Context<Fields extends {[name: string]: any}> = ContextClass<Fields> & {readonly [P in keyof Fields]: P extends "isFrozen" ? never : Fields[P]};
 class ContextClass<Fields extends {[name: string]: any}> {
@@ -45,11 +45,6 @@ class FrozenContextClass<Fields extends {[name: string]: any}> extends ContextCl
         let newContext = new ContextClass(this) as (Context<Fields & ValuesType>);
         newContext.add(values);
         return newContext;
-    }
-
-    // TODO: maybe do this implicitly? FrozenContext extends Context, but then the user may accidentaly return initial context instead of frozen one (not true - typecheck of context additions won't allow for that)
-    public unfreeze(): Context<Fields> {
-        return new ContextClass(this) as Context<Fields>;
     }
 }
 type LockedContext<Fields extends {[name: string]: any}> = {readonly [P in keyof Fields]: Fields[P]};
