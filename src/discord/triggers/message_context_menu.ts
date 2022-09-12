@@ -1,4 +1,4 @@
-import { APIInteractionGuildMember, ApplicationCommandType, GuildMember, IntentsBitField, Message, MessageContextMenuCommandInteraction } from "discord.js";
+import { ApplicationCommandType, GuildMember, IntentsBitField, Message, MessageContextMenuCommandInteraction, TextBasedChannel } from "discord.js";
 import { PreinitContext, InitContext, InitOutContext } from "../../core/context";
 import { Trigger } from "../../core/logic";
 import { DiscordEnvContext } from "../module";
@@ -7,8 +7,9 @@ type Params = {
     commandName: string,
 }
 type ContextAdditions = {
+    commandTargetMessageChannel: TextBasedChannel
     commandTargetMessage: Message
-    commandExecutingUser: GuildMember | APIInteractionGuildMember | null,
+    commandExecutingUser: GuildMember
     commandInteraction: MessageContextMenuCommandInteraction
 }
 
@@ -26,9 +27,14 @@ export default class MessageContextMenuTrigger<EnvContext extends DiscordEnvCont
             if(interaction.guildId == context.discordGuild.id 
             && interaction.isMessageContextMenuCommand() 
             && interaction.commandName == parameters.commandName) {
+                if(!interaction.member || !interaction.guild) return;
+                let channel = await interaction.guild.channels.fetch(interaction.channelId) as TextBasedChannel;
+                if(!channel) return;
+
                 callback(context.add({
+                    commandTargetMessageChannel: channel,
                     commandTargetMessage: interaction.targetMessage, 
-                    commandExecutingUser: interaction.member,
+                    commandExecutingUser: interaction.member as GuildMember,
                     commandInteraction: interaction
                 }));
             }

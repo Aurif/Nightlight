@@ -35,7 +35,7 @@ export class DiscordGuildModule extends Module<Params, DiscordEnvContext> {
         const guild = client.guilds.resolve(parameters.guildId)
         if(guild == undefined)
             throw new Error("Discord guild not found");
-        guild.commands.set([])
+        await guild.commands.set([])
 
         return context.add({
             discordGuild: guild,

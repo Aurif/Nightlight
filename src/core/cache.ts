@@ -1,4 +1,4 @@
-class TempCache<T> {
+export class TempCache<T> {
     private static cache: Record<string, Record<string, any>> = {};
 
     private readonly key: string;
