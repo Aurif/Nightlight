@@ -1,5 +1,5 @@
-import { InitContext, EnvironmentContext } from "../../core/context";
-import { Condition } from "../../core/logic"
+import { InitContext, EnvironmentContext } from "../context";
+import { Condition } from "../logic"
 
 type Params = {
     value: boolean

@@ -1,4 +1,4 @@
-import BaseCondition from "../core/conditions/has_role";
+import BaseCondition from "../core/conditions/base";
 import { Scenario, ScenarioCreator } from "../core/scenario";
 import AddRolesAction from "../discord/actions/add_roles";
 import PretendTypingAction from "../discord/actions/pretend_typing";

@@ -4,7 +4,7 @@ import { Trigger } from "../../core/logic";
 import { DiscordEnvContext } from "../module";
 
 type Params = {
-    channelId: string
+    channelId: string | string[]
 }
 type ContextAdditions = {
     receivedMessage: Message
@@ -17,17 +17,23 @@ export default class MessageSentTrigger<EnvContext extends DiscordEnvContext> ex
     }
 
     protected async init(parameters: Params, context: InitContext<EnvContext>, callback: (context: InitOutContext<EnvContext, ContextAdditions>) => void): Promise<void> {
-        let channel = await context.discordGuild.channels.fetch(parameters.channelId);
-        if(!channel)
-            throw new Error("Channel not found");
-        if(!channel.isTextBased())
-            throw new Error("Channel is not text based");
-        
-        channel.createMessageCollector().on('collect', (message: Message) => {
-            if(message.author.bot) return
+        let channelIds = parameters.channelId
+        if(!Array.isArray(channelIds))
+            channelIds = [channelIds]
 
-            let newContext = context.add({receivedMessage: message});
-            callback(newContext);
-        })
+        for(let channelId of channelIds) {
+            let channel = await context.discordGuild.channels.fetch(channelId);
+            if(!channel)
+                throw new Error("Channel not found");
+            if(!channel.isTextBased())
+                throw new Error("Channel is not text based");
+            
+            channel.createMessageCollector().on('collect', (message: Message) => {
+                if(message.author.bot) return
+
+                let newContext = context.add({receivedMessage: message});
+                callback(newContext);
+            })
+        }
     }
 }
