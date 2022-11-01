@@ -5,16 +5,14 @@ import { DiscordEnvContext } from "../module";
 
 export type BareMessageOptions = Omit<MessageOptions, 'reply' | 'stickers' | 'flags'>
 export type BareMessageSenderParams = {
-    message: string
+    message?: string
     embded?: APIEmbed | JSONEncodable<APIEmbed>
 }
 export abstract class BareMessageSender<Params extends BareMessageSenderParams, ContextAdditions, EnvContext extends DiscordEnvContext> extends Action<Params, ContextAdditions, EnvContext> {
     protected prepareBareMessagePayload(parameters: Params): BareMessageOptions {
-        let messagePayload: BareMessageOptions = {
-            content: parameters.message
-        }
-        if (parameters.embded)
-            messagePayload.embeds = [parameters.embded];
+        let messagePayload: BareMessageOptions = {}
+        if (parameters.message) messagePayload.content = parameters.message;
+        if (parameters.embded) messagePayload.embeds = [parameters.embded];
         return messagePayload;
     }
 }
