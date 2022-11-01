@@ -5,9 +5,9 @@
   "main": "dist/index.js",
   "dependencies": {
     "discord.js": "^14.2.0",
+    "openai": "^3.0.1",
     "typescript": "^4.7.4"
   },
-  "devDependencies": {},
   "scripts": {
     "prelocal": "npm run build",
     "local": "node dist/index_test.js",

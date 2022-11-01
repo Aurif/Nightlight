@@ -2,31 +2,70 @@ import { getGlobalContext, getSubContextName, EnvironmentContext, PreinitContext
 import { Scenario } from "./scenario";
 import * as logging from "./logging";
 
-export default abstract class Module<Params, EnvContext extends EnvironmentContext> {
-    private static moduleCount = 0;
-    public readonly name: string = this.constructor.name;
-    private readonly id: number = Module.moduleCount++;
-    private lockNewScenarios = false;
-    private scenarios: Scenario<any, EnvContext>[] = [];
+export abstract class Module<Params, EnvContext extends EnvironmentContext> {
+    private readonly parameters: Params;
     public constructor(parameters: Params) {
-        this.name = getSubContextName("global", this.constructor.name, this.id);
-        this.build(parameters);
+        this.parameters = parameters;
     }
-    private async build(parameters: Params): Promise<void> {
+    public runPreinit(context: PreinitContext<{}>): Promise<PreinitOutContext<{}, EnvContext["preinit"]>> {
+        return this.preinit(context, this.parameters)
+    }
+    public runInit(context: InitContext<{}>): Promise<InitOutContext<{}, EnvContext["preinit"]>> {
+        return this.init(context, this.parameters)
+    }
+
+    // TODO: retry preinit/init on failure
+    // TODO: proper error handling for preinit/init
+    protected async preinit(context: PreinitContext<{}>, _parameters: Params): Promise<PreinitOutContext<{}, EnvContext["preinit"]>> {
+        return context as PreinitOutContext<{}, EnvContext["preinit"]>;
+    };
+    protected abstract init(context: InitContext<{}>, parameters: Params): Promise<InitOutContext<{}, EnvContext["init"]>>;
+
+}
+
+export function worker() {
+    return new MultiModule()
+}
+
+class MultiModule<EnvContext extends EnvironmentContext> {
+    private static moduleCount = 0;
+    private readonly id: number = MultiModule.moduleCount++;
+    public readonly name: string = getSubContextName("global", "M", this.id);
+
+    private lockNew = false;
+    private modules: Module<any, EnvContext>[] = [];
+    private scenarios: Scenario<any, EnvContext>[] = [];
+    public constructor() {
+        setTimeout(this.build.bind(this), 0)
+    }
+
+    // TODO: infer NewEnvConvtext from paramater instead of defining it explicitly
+    public using<NewEnvContext extends EnvironmentContext>(module: Module<any, NewEnvContext>): MultiModule<EnvContext & NewEnvContext> {
+        if(this.lockNew)
+            throw new Error("Tried registering module after process started initializing");
+        else
+            this.modules.push(module)
+        return this 
+    }
+    private async build(): Promise<void> {
         let globalContext = getGlobalContext(this.name);
+        this.lockNew = true;
 
         logging.logInit(`${this.name}...`, 'PREINIT');
-        let preinitContext = await this.preinit(globalContext["preinit"], parameters)
+        let preinitContext = globalContext["preinit"]
+        for(let module of this.modules)
+            preinitContext = await module.runPreinit(preinitContext) as PreinitContext<EnvContext>
         logging.logInit(`${this.name} OK`, 'PREINIT');
-        await this.preinitScenarios(preinitContext.freeze(this.constructor.name, this.id) as PreinitContext<EnvContext>);
+        await this.preinitScenarios(preinitContext.freeze("M", this.id) as PreinitContext<EnvContext>);
 
         logging.logInit(`${this.name}...`, 'INIT');
-        let initContext = await this.init(globalContext["init"], parameters);
+        let initContext = globalContext["init"]
+        for(let module of this.modules)
+            initContext = await module.runInit(initContext) as InitContext<EnvContext>
         logging.logInit(`${this.name} OK`, 'INIT');
-        this.initScenarios(initContext.freeze(this.constructor.name, this.id) as InitContext<EnvContext>);
+        this.initScenarios(initContext.freeze("M", this.id) as InitContext<EnvContext>);
     }
     private preinitScenarios(preinitContext: PreinitContext<EnvContext>): Promise<void[]> {
-        this.lockNewScenarios = true;
         let promises: Promise<void>[] = [];
         this.scenarios.forEach((scenario, id) => {
             let scenarioContext = preinitContext.freeze(scenario.constructor.name, id);
@@ -48,16 +87,9 @@ export default abstract class Module<Params, EnvContext extends EnvironmentConte
         })
     }
 
-    // TODO: retry preinit/init on failure
-    // TODO: proper error handling for preinit/init
-    protected async preinit(context: PreinitContext<{}>, _parameters: Params): Promise<PreinitOutContext<{}, EnvContext["preinit"]>> {
-        return context as PreinitOutContext<{}, EnvContext["preinit"]>;
-    };
-    protected abstract init(context: InitContext<{}>, parameters: Params): Promise<InitOutContext<{}, EnvContext["init"]>>;
-
-    public use(scenario: Scenario<any, EnvContext>): Module<Params, EnvContext> {
-        if(this.lockNewScenarios)
-            throw new Error("Tried registering scenario after module started initializing scenarios");
+    public run(scenario: Scenario<any, EnvContext>): MultiModule<EnvContext> {
+        if(this.lockNew)
+            throw new Error("Tried registering scenario after process started initializing");
         else
             this.scenarios.push(scenario);
         return this;

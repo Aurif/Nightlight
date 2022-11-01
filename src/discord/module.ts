@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits, Guild, IntentsBitField } from 'discord.js';
 import { InitContext, InitOutContext, PreinitContext, PreinitOutContext } from "../core/context";
-import Module from "../core/module";
+import { Module } from "../core/module";
 import { Secrets, SecretsKey } from '../core/utils/secrets';
 
 type Params = {
