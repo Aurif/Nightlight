@@ -20,10 +20,12 @@ export default class TheGateScenario<EnvContext extends DiscordEnvContext & Open
         create.on(new MessageSentTrigger({channelId: parameters.channelId}))
               .ifNot(new HasRoleCondition(ctx => ({user: ctx.receivedMessage.member, roleId: parameters.baseRoleId})))
               .do(new AddRolesAction(ctx => ({user: ctx.receivedMessage.member, roleIds: [parameters.baseRoleId, ...parameters.additionalRoleIds], reason: "User passed automated initiation"})))
+
               .do(new PretendTypingAction({channelId: parameters.channelId, duration: 10}))
               .do(new CreateCompletionAction(ctx =>({prompt: `Respond to the following message:\n${ctx.receivedMessage.content}\n`, modelType: 'high', user: ctx.receivedMessage.author.id})))
               .do(new PretendTypingAction(ctx => ({channelId: parameters.channelId, duration: ctx.promptCompletion.length*50})))
               .do(new SendMessageAction(ctx =>({message: ctx.promptCompletion, channelId: parameters.channelId})))
+              
               .if(new BaseCondition(ctx => ({value: ctx.promptCompletion.slice(-1) !== "?"})))
               .do(new PretendTypingAction({channelId: parameters.channelId, duration: 10}))
               .do(new CreateCompletionAction(ctx =>({prompt: `Respond to the following message with a question:\n${ctx.receivedMessage.content}\n`, modelType: 'high', user: ctx.receivedMessage.author.id})))

@@ -24,12 +24,13 @@ export default class ChatBotScenario<EnvContext extends DiscordEnvContext & Open
                 if(ctx.previousMessages.length > 0 && ctx.previousMessages[0].toString().length > parameters.maxPromptLength)
                     return {prompt: `Paraphrase "too much text, didn't read"`, modelType: 'medium', user: "0"}
                 
-                let prompt = "You are a friendly chatbot called Nightlight"
-                for(let i=0; i<Math.min(ctx.previousMessages.length, parameters.maxPreviousMessages); i++) {
-                    if(ctx.previousMessages[i].toString().length + prompt.length >= parameters.maxPromptLength) break
-                    prompt += `\n${ctx.previousMessages[i].author.username}: ${ctx.previousMessages[i].toString()}`
+                let prompt = "Nightlight:"
+                for(let i=Math.min(ctx.previousMessages.length, parameters.maxPreviousMessages)-1; i>=0; i--) {
+                    if(ctx.previousMessages[i].cleanContent.length + prompt.length >= parameters.maxPromptLength) break
+                    prompt = `${ctx.previousMessages[i].author.username}: ${ctx.previousMessages[i].cleanContent}\n` + prompt
                 }
-                prompt += "\nNightlight:"
+                prompt = "You are a friendly chatbot called Nightlight\n" + prompt
+                console.log(prompt) // TODO: remove, temporary debug output
                 return {prompt: prompt, modelType: 'high', user: ctx.receivedMessage.author.id}
               }))
               .do(new PretendTypingAction(ctx => ({channelId: ctx.receivedMessage.channelId, duration: ctx.promptCompletion.length*50})))
