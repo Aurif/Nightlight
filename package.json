@@ -9,11 +9,12 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
-    "prelocal": "npm run build",
+    "prelocal": "npm run clean_and_build",
     "local": "node dist/index_test.js",
-    "preprod": "npm run build",
+    "preprod": "npm run clean_and_build",
     "prod": "node dist/index_prod.js",
-    "build": "del /S /Q dist && tsc"
+    "clean_and_build": "del /S /Q dist && npm run build",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
