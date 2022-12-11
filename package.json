@@ -13,7 +13,7 @@
     "local": "node dist/index_test.js",
     "preprod": "npm run clean_and_build",
     "prod": "node dist/index_prod.js",
-    "clean_and_build": "del /S /Q dist && npm run build",
+    "clean_and_build": "powershell Remove-Item -Recurse -Path 'dist' && npm run build",
     "build": "tsc"
   },
   "repository": {
