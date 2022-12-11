@@ -30,7 +30,6 @@ export default class ChatBotScenario<EnvContext extends DiscordEnvContext & Open
                     prompt = `${ctx.previousMessages[i].author.username}: ${ctx.previousMessages[i].cleanContent}\n` + prompt
                 }
                 prompt = "You are a friendly chatbot called Nightlight\n" + prompt
-                console.log(prompt) // TODO: remove, temporary debug output
                 return {prompt: prompt, modelType: 'high', user: ctx.receivedMessage.author.id}
               }))
               .do(new PretendTypingAction(ctx => ({channelId: ctx.receivedMessage.channelId, duration: ctx.promptCompletion.length*50})))
