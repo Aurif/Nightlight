@@ -13,16 +13,25 @@ type ContextAdditions = {
 
 export default class CreateCompletionAction<EnvContext extends OpenAIEnvContext> extends Action<Params, ContextAdditions, EnvContext> {
     protected async run(parameters: Params, context: InitContext<EnvContext>): Promise<InitOutContext<EnvContext, ContextAdditions>> {
-        const response = await context.openAIApi.createCompletion({
-            model: context.openAIPreferences.textModels[parameters.modelType || "medium"],
-            prompt: parameters.prompt,
-            temperature: 0,
-            max_tokens: 120,
-            top_p: 1,
-            frequency_penalty: 0,
-            presence_penalty: 0,
-            user: this.hashCode(parameters.user)
-          });
+        let response: any
+        try {
+            response = await context.openAIApi.createCompletion({
+                model: context.openAIPreferences.textModels[parameters.modelType || "medium"],
+                prompt: parameters.prompt,
+                temperature: 0,
+                max_tokens: 120,
+                top_p: 1,
+                frequency_penalty: 0,
+                presence_penalty: 0,
+                user: this.hashCode(parameters.user)
+            });
+        } catch (e) {
+            let errorMessage = (e as any)?.response?.data?.error?.message;
+            if (errorMessage) {
+                return context.add({promptCompletion: errorMessage});
+            }
+            return context.add({promptCompletion: "An unknown error occured"});
+        }
         return context.add({promptCompletion: response.data.choices[0].text || ""});
     }
 
