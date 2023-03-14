@@ -1,12 +1,12 @@
-import BaseCondition from "../core/conditions/base";
+// import BaseCondition from "../core/conditions/base";
 import { Scenario, ScenarioCreator } from "../core/scenario";
 import AddRolesAction from "../discord/actions/add_roles";
-import PretendTypingAction from "../discord/actions/pretend_typing";
-import SendMessageAction from "../discord/actions/send_message";
+// import PretendTypingAction from "../discord/actions/pretend_typing";
+// import SendMessageAction from "../discord/actions/send_message";
 import HasRoleCondition from "../discord/conditions/has_role";
 import { DiscordEnvContext } from "../discord/module";
 import MessageSentTrigger from "../discord/triggers/message_sent";
-import CreateCompletionAction from "../openai/actions/create_completion";
+// import CreateCompletionAction from "../openai/actions/create_completion";
 import { OpenAIEnvContext } from "../openai/module";
 
 type Params = {
@@ -21,15 +21,15 @@ export default class TheGateScenario<EnvContext extends DiscordEnvContext & Open
               .ifNot(new HasRoleCondition(ctx => ({user: ctx.receivedMessage.member, roleId: parameters.baseRoleId})))
               .do(new AddRolesAction(ctx => ({user: ctx.receivedMessage.member, roleIds: [parameters.baseRoleId, ...parameters.additionalRoleIds], reason: "User passed automated initiation"})))
 
-              .do(new PretendTypingAction({channelId: parameters.channelId, duration: 10}))
-              .do(new CreateCompletionAction(ctx =>({prompt: `Respond to the following message:\n${ctx.receivedMessage.content}\n`, modelType: 'high', user: ctx.receivedMessage.author.id})))
-              .do(new PretendTypingAction(ctx => ({channelId: parameters.channelId, duration: ctx.promptCompletion.length*50})))
-              .do(new SendMessageAction(ctx =>({message: ctx.promptCompletion, channelId: parameters.channelId})))
+            //   .do(new PretendTypingAction({channelId: parameters.channelId, duration: 10}))
+            //   .do(new CreateCompletionAction(ctx =>({prompt: `Respond to the following message:\n${ctx.receivedMessage.content}\n`, modelType: 'high', user: ctx.receivedMessage.author.id})))
+            //   .do(new PretendTypingAction(ctx => ({channelId: parameters.channelId, duration: ctx.promptCompletion.length*50})))
+            //   .do(new SendMessageAction(ctx =>({message: ctx.promptCompletion, channelId: parameters.channelId})))
               
-              .if(new BaseCondition(ctx => ({value: ctx.promptCompletion.slice(-1) !== "?"})))
-              .do(new PretendTypingAction({channelId: parameters.channelId, duration: 10}))
-              .do(new CreateCompletionAction(ctx =>({prompt: `Respond to the following message with a question:\n${ctx.receivedMessage.content}\n`, modelType: 'high', user: ctx.receivedMessage.author.id})))
-              .do(new PretendTypingAction(ctx => ({channelId: parameters.channelId, duration: ctx.promptCompletion.length*50})))
-              .do(new SendMessageAction(ctx =>({message: ctx.promptCompletion, channelId: parameters.channelId})))
+            //   .if(new BaseCondition(ctx => ({value: ctx.promptCompletion.slice(-1) !== "?"})))
+            //   .do(new PretendTypingAction({channelId: parameters.channelId, duration: 10}))
+            //   .do(new CreateCompletionAction(ctx =>({prompt: `Respond to the following message with a question:\n${ctx.receivedMessage.content}\n`, modelType: 'high', user: ctx.receivedMessage.author.id})))
+            //   .do(new PretendTypingAction(ctx => ({channelId: parameters.channelId, duration: ctx.promptCompletion.length*50})))
+            //   .do(new SendMessageAction(ctx =>({message: ctx.promptCompletion, channelId: parameters.channelId})))
     }
 }
